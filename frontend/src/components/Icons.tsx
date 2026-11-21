@@ -121,3 +121,29 @@ export function PhoneIcon({ className = base }: IconProps) {
     </svg>
   )
 }
+
+export function HomeIcon({ className = base }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
+      <path d="m4 11 8-7 8 7v9H4v-9Z" strokeLinejoin="round" />
+      <path d="M9 20v-6h6v6" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+export function LogoutIcon({ className = base }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
+      <path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+export function UserIcon({ className = base }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M5 20c.7-4 3-6 7-6s6.3 2 7 6" strokeLinecap="round" />
+    </svg>
+  )
+}

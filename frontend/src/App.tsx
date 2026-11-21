@@ -1,15 +1,20 @@
 import { useEffect, useState } from 'react'
 import DangerAlert from './components/DangerAlert'
 import Landing from './components/Landing'
+import SignIn from './components/SignIn'
 import VisitForm from './components/VisitForm'
-import { ArrowIcon, BackIcon, CheckIcon, MicIcon, MutedIcon, SpeakerIcon, StopIcon, WaveIcon } from './components/Icons'
+import { ArrowIcon, BackIcon, CheckIcon, ClipboardIcon, HomeIcon, ListIcon, LogoutIcon, MicIcon, MutedIcon, SpeakerIcon, StopIcon, WaveIcon } from './components/Icons'
+import { clearWorker, loadWorker, saveWorker, workerInitials } from './lib/auth'
+import type { WorkerProfile } from './lib/auth'
 import { useVoiceSession } from './lib/useVoiceSession'
 import type { FollowUp } from './lib/types'
 
-type Page = 'landing' | 'visit' | 'followups'
+type Page = 'landing' | 'signin' | 'visit' | 'followups'
 
 export default function App() {
   const [page, setPage] = useState<Page>('landing')
+  const [user, setUser] = useState<WorkerProfile | null>(() => loadWorker())
+  const [pendingPage, setPendingPage] = useState<'visit' | 'followups'>('visit')
   const voice = useVoiceSession()
   const [correction, setCorrection] = useState('')
   const [followUps, setFollowUps] = useState<FollowUp[]>([])
@@ -40,28 +45,47 @@ export default function App() {
     setPage('landing')
   }
 
-  if (page === 'landing') {
-    return <Landing onStart={() => setPage('visit')} onRecords={() => { setFollowUpError(''); setPage('followups') }} />
+  const openProtected = (target: 'visit' | 'followups') => {
+    if (user) {
+      setFollowUpError('')
+      setPage(target)
+      return
+    }
+    setPendingPage(target)
+    setPage('signin')
   }
+
+  const signIn = (profile: WorkerProfile) => {
+    saveWorker(profile)
+    setUser(profile)
+    setPage(pendingPage)
+  }
+
+  const signOut = () => {
+    voice.disconnect()
+    clearWorker()
+    setUser(null)
+    setPage('landing')
+  }
+
+  if (page === 'landing') {
+    return <Landing user={user} onStart={() => openProtected('visit')} onRecords={() => openProtected('followups')} onSignIn={() => { setPendingPage('visit'); setPage('signin') }} onSignOut={signOut} />
+  }
+
+  if (page === 'signin') return <SignIn onBack={() => setPage('landing')} onSignIn={signIn} />
 
   if (page === 'followups') {
     return (
-      <main className="min-h-screen bg-cream">
-        <header className="border-b border-forest/10 bg-paper">
-          <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4">
-            <button onClick={goBack} className="inline-flex items-center gap-2 text-sm font-semibold text-forest" type="button"><BackIcon className="h-4 w-4" /> Home</button>
-            <span className="font-hindi font-bold">स्वरवाणी · Follow-ups</span>
-          </div>
-        </header>
-        <section className="mx-auto max-w-5xl px-5 py-10">
+      <AppShell user={user!} active="followups" onHome={goBack} onVisit={() => setPage('visit')} onFollowups={() => setPage('followups')} onSignOut={signOut}>
+        <section className="mx-auto max-w-5xl px-5 py-10 lg:px-10">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-moss">Visit queue</p>
-          <h1 className="mt-2 text-3xl font-extrabold">Follow-up board</h1>
+          <h1 className="mt-2 font-display text-5xl leading-none text-forest">Follow-up board</h1>
           <p className="mt-2 text-sm text-ink/60">Saved visit follow-ups, ordered by the next visit date.</p>
           {followUpError && <p role="alert" className="mt-6 rounded-xl bg-danger-soft p-4 text-sm text-danger">{followUpError}</p>}
           {!followUpError && followUps.length === 0 && <p className="mt-8 rounded-card border border-forest/10 bg-paper p-6 text-sm text-ink/60">No saved follow-ups yet. Confirm a visit record to add one.</p>}
           <ul className="mt-6 grid gap-3">
             {followUps.map((item, i) => (
-              <li key={`${item.recordId}-${i}`} className={`rounded-card border bg-paper p-5 ${item.danger ? 'border-danger/30' : 'border-forest/10'}`}>
+              <li key={`${item.recordId}-${i}`} className={`border-l-4 bg-paper p-5 shadow-sm ${item.danger ? 'border-danger' : 'border-moss'}`}>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div><p className="font-bold">{item.beneficiaryName || 'Beneficiary'}</p><p className="mt-1 text-xs uppercase tracking-wide text-ink/50">{item.visitType} · {item.recordId}</p></div>
                   {item.nextVisit && <time className="rounded-full bg-cream px-3 py-1 text-xs font-semibold">{item.nextVisit}</time>}
@@ -72,16 +96,15 @@ export default function App() {
             ))}
           </ul>
         </section>
-      </main>
+      </AppShell>
     )
   }
 
   return (
-    <main className="min-h-screen bg-cream">
-      <header className="border-b border-forest/10 bg-paper">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
-          <button onClick={goBack} className="inline-flex items-center gap-2 text-sm font-semibold text-forest" type="button"><BackIcon className="h-4 w-4" /> Home</button>
-          <div className="flex items-center gap-2 font-bold"><WaveIcon className="h-5 w-5 text-moss" /> SwarVani · Visit</div>
+    <AppShell user={user!} active="visit" onHome={goBack} onVisit={() => setPage('visit')} onFollowups={() => setPage('followups')} onSignOut={signOut}>
+      <div className="border-b border-forest/10 bg-paper px-5 py-3 lg:px-10">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
+          <div><p className="text-xs font-bold uppercase tracking-[0.18em] text-moss">Active field visit</p><p className="text-sm text-ink/50">Speak naturally in Hindi, Hinglish, or English</p></div>
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -98,14 +121,13 @@ export default function App() {
             </button>
             <span className="rounded-full bg-cream px-3 py-1 text-xs font-semibold text-forest">{voice.status}</span>
           </div>
-        </div>
-      </header>
+        </div></div>
 
       <div className="mx-auto grid max-w-6xl gap-6 px-5 py-7 lg:grid-cols-[1.1fr_0.9fr]">
         <section className="space-y-5">
-          <div className="rounded-card border border-forest/10 bg-paper p-5 sm:p-7">
+          <div className="border-l-4 border-turmeric bg-paper p-5 shadow-sm sm:p-7">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-moss">Voice field register</p>
-            <h1 className="mt-2 text-2xl font-extrabold">Speak the visit. Confirm the record.</h1>
+            <h1 className="mt-2 font-display text-4xl leading-none text-forest">Speak the visit. Confirm the record.</h1>
             <p className="mt-2 text-sm leading-relaxed text-ink/60">The assistant discloses that it is AI, then listens. Check the extracted fields and correct anything before saving.</p>
             <div className="mt-5 flex flex-wrap gap-2 text-[11px] font-semibold text-forest/70">
               <span className="rounded-full bg-cream px-3 py-1.5">STT: {voice.meta?.stt ?? 'connecting'}</span>
@@ -114,15 +136,15 @@ export default function App() {
             </div>
           </div>
 
-          <div className="rounded-card border border-forest/10 bg-paper p-5 sm:p-7">
+          <div className="border border-forest/12 bg-forest-deep p-5 text-cream shadow-xl sm:p-7">
             <div className="flex items-center justify-between gap-4">
               <h2 className="font-bold">Conversation</h2>
-              <span className="text-xs text-ink/45">{voice.sessionState.replaceAll('_', ' ')}</span>
+              <span className="text-xs text-cream/45">{voice.sessionState.replaceAll('_', ' ')}</span>
             </div>
             <div className="mt-4 max-h-[22rem] space-y-3 overflow-y-auto" aria-live="polite">
-              {voice.turns.length === 0 && <p className="text-sm text-ink/45">The AI disclosure will appear here when the session connects.</p>}
+              {voice.turns.length === 0 && <p className="text-sm text-cream/45">The AI disclosure will appear here when the session connects.</p>}
               {voice.turns.map((turn) => (
-                <p key={turn.id} className={`max-w-[92%] rounded-2xl px-4 py-3 text-base leading-relaxed ${turn.role === 'asha' ? 'ml-auto bg-forest text-cream' : turn.kind === 'danger' ? 'bg-danger-soft text-danger' : 'bg-cream text-ink'}`}>
+                <p key={turn.id} className={`max-w-[92%] px-4 py-3 text-lg leading-relaxed ${turn.role === 'asha' ? 'ml-auto bg-moss text-cream' : turn.kind === 'danger' ? 'bg-danger-soft text-danger' : 'bg-cream text-ink'}`}>
                   {turn.text}
                 </p>
               ))}
@@ -139,7 +161,7 @@ export default function App() {
               {voice.sessionState === 'awaiting_confirmation' && <button onClick={() => void voice.confirm()} className="inline-flex items-center gap-2 rounded-full border border-forest/20 px-5 py-3 text-sm font-semibold text-forest" type="button"><CheckIcon className="h-4 w-4" /> Confirm and save</button>}
             </div>
             <form className="mt-5 flex gap-2" onSubmit={(event) => { event.preventDefault(); if (correction.trim()) { voice.submitText(correction, voice.record ? 'correct' : 'utterance'); setCorrection('') } }}>
-              <input value={correction} onChange={(event) => setCorrection(event.target.value)} className="min-w-0 flex-1 rounded-xl border border-forest/15 bg-cream px-4 py-3 text-sm outline-none focus:border-moss" placeholder={voice.record ? 'Correct one field, e.g. weight 52 kilo' : 'Or type a visit note'} aria-label="Visit note or correction" />
+              <input value={correction} onChange={(event) => setCorrection(event.target.value)} className="min-w-0 flex-1 border border-cream/20 bg-cream px-4 py-3 text-base text-ink outline-none focus:border-turmeric" placeholder={voice.record ? 'Correct one field, e.g. weight 52 kilo' : 'Or type a visit note'} aria-label="Visit note or correction" />
               <button className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-forest text-cream" aria-label="Send note" type="submit"><ArrowIcon className="h-4 w-4" /></button>
             </form>
           </div>
@@ -154,6 +176,43 @@ export default function App() {
           </div>
         </aside>
       </div>
+    </AppShell>
+  )
+}
+
+type ShellProps = {
+  user: WorkerProfile
+  active: 'visit' | 'followups'
+  onHome: () => void
+  onVisit: () => void
+  onFollowups: () => void
+  onSignOut: () => void
+  children: React.ReactNode
+}
+
+function AppShell({ user, active, onHome, onVisit, onFollowups, onSignOut, children }: ShellProps) {
+  const nav = 'flex items-center gap-3 px-4 py-3 text-sm font-bold transition'
+  return (
+    <main className="min-h-screen bg-cream lg:grid lg:grid-cols-[15.5rem_1fr]">
+      <aside className="hidden min-h-screen flex-col bg-forest-deep text-cream lg:flex">
+        <button onClick={onHome} type="button" className="flex items-center gap-3 border-b border-cream/10 px-6 py-6 text-left">
+          <span className="grid h-10 w-10 place-items-center border border-cream/20 text-turmeric"><WaveIcon className="h-5 w-5" /></span>
+          <span><span className="block font-hindi text-lg font-bold">स्वरवाणी</span><span className="block text-[10px] uppercase tracking-[0.2em] text-cream/45">Field register</span></span>
+        </button>
+        <nav className="space-y-1 px-3 py-6">
+          <button onClick={onHome} type="button" className={`${nav} w-full text-cream/65 hover:bg-cream/8 hover:text-cream`}><HomeIcon className="h-5 w-5" /> Home</button>
+          <button onClick={onVisit} type="button" className={`${nav} w-full ${active === 'visit' ? 'bg-turmeric text-forest' : 'text-cream/65 hover:bg-cream/8 hover:text-cream'}`}><MicIcon className="h-5 w-5" /> New visit</button>
+          <button onClick={onFollowups} type="button" className={`${nav} w-full ${active === 'followups' ? 'bg-turmeric text-forest' : 'text-cream/65 hover:bg-cream/8 hover:text-cream'}`}><ListIcon className="h-5 w-5" /> Follow-ups</button>
+        </nav>
+        <div className="mt-auto border-t border-cream/10 p-5">
+          <div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center bg-mint text-xs font-extrabold text-forest">{workerInitials(user.name)}</span><span className="min-w-0"><span className="block truncate text-sm font-bold">{user.name}</span><span className="block truncate text-xs text-cream/45">{user.district}</span></span></div>
+          <button onClick={onSignOut} type="button" className="mt-4 flex items-center gap-2 text-xs font-bold text-cream/50 hover:text-cream"><LogoutIcon className="h-4 w-4" /> Sign out</button>
+        </div>
+      </aside>
+      <section className="min-w-0">
+        <header className="flex items-center justify-between border-b border-forest/10 bg-paper px-5 py-3 lg:hidden"><button onClick={onHome} type="button" className="font-hindi text-lg font-bold text-forest">स्वरवाणी</button><div className="flex gap-2"><button onClick={onFollowups} aria-label="Follow-ups" className="p-2 text-forest"><ClipboardIcon className="h-5 w-5" /></button><button onClick={onSignOut} aria-label="Sign out" className="p-2 text-danger"><LogoutIcon className="h-5 w-5" /></button></div></header>
+        {children}
+      </section>
     </main>
   )
 }

@@ -1,7 +1,15 @@
 import { useEffect, useState } from 'react'
-import { ArrowIcon, ClipboardIcon, ListIcon, MicIcon, PhoneIcon, ShieldIcon, SparkIcon, WaveIcon } from './Icons'
+import type { WorkerProfile } from '../lib/auth'
+import { workerInitials } from '../lib/auth'
+import { ArrowIcon, ClipboardIcon, ListIcon, LogoutIcon, MicIcon, PhoneIcon, ShieldIcon, SparkIcon, UserIcon, WaveIcon } from './Icons'
 
-type Props = { onStart: () => void; onRecords: () => void }
+type Props = {
+  user: WorkerProfile | null
+  onStart: () => void
+  onRecords: () => void
+  onSignIn: () => void
+  onSignOut: () => void
+}
 type DangerPreview = { key: string; labelEn: string; labelHi: string; who: string }
 
 const STEPS = [
@@ -45,7 +53,7 @@ const VISIT_PATHS = [
   { code: 'IMMUNISATION', title: 'Immunisation', body: 'Record the vaccine mentioned and the next visit information in a structured form.' },
 ]
 
-export default function Landing({ onStart, onRecords }: Props) {
+export default function Landing({ user, onStart, onRecords, onSignIn, onSignOut }: Props) {
   const [dangerPreview, setDangerPreview] = useState<DangerPreview[]>([])
   const [dangerSource, setDangerSource] = useState('')
 
@@ -92,39 +100,50 @@ export default function Landing({ onStart, onRecords }: Props) {
               Follow-ups
             </button>
           </nav>
-          <button
-            className="inline-flex items-center gap-2 rounded-full bg-forest px-4 py-2.5 text-sm font-semibold text-cream transition hover:bg-forest-deep"
-            onClick={onStart}
-            type="button"
-          >
-            <MicIcon className="h-4 w-4" />
-            Start a visit
-          </button>
+          <div className="flex items-center gap-2">
+            {user ? (
+              <div className="group relative">
+                <button type="button" className="flex items-center gap-2 border border-forest/15 bg-paper px-2.5 py-2 text-left">
+                  <span className="grid h-8 w-8 place-items-center bg-turmeric text-xs font-extrabold text-forest">{workerInitials(user.name)}</span>
+                  <span className="hidden sm:block"><span className="block text-xs font-bold">{user.name}</span><span className="block text-[10px] text-ink/45">{user.workerId}</span></span>
+                </button>
+                <div className="invisible absolute right-0 top-full z-50 mt-2 w-48 border border-forest/15 bg-paper p-2 opacity-0 shadow-xl transition group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
+                  <button onClick={onSignOut} type="button" className="flex w-full items-center gap-2 px-3 py-2 text-sm font-semibold text-danger hover:bg-danger-soft"><LogoutIcon className="h-4 w-4" /> Sign out</button>
+                </div>
+              </div>
+            ) : (
+              <button onClick={onSignIn} type="button" className="hidden items-center gap-2 px-3 py-2 text-sm font-bold text-forest sm:inline-flex"><UserIcon className="h-4 w-4" /> Sign in</button>
+            )}
+            <button className="inline-flex items-center gap-2 bg-forest px-4 py-2.5 text-sm font-semibold text-cream transition hover:bg-forest-deep" onClick={onStart} type="button">
+              <MicIcon className="h-4 w-4" /> Start a visit
+            </button>
+          </div>
         </div>
       </header>
 
       <main id="top">
         {/* ---------------------------------------------------------- hero */}
-        <section className="aurora relative overflow-hidden border-b border-forest/10">
+        <section className="relative overflow-hidden border-b border-forest/10 bg-forest-deep text-cream">
+          <div className="field-lines absolute inset-0 opacity-15" />
           <div className="mx-auto grid w-full max-w-6xl gap-14 px-5 pb-20 pt-14 lg:grid-cols-[1.06fr_0.94fr] lg:items-center lg:pb-24 lg:pt-20">
-            <div>
-              <span className="inline-flex items-center gap-2 rounded-full border border-forest/15 bg-paper/70 px-3.5 py-1.5 text-xs font-semibold text-forest">
+            <div className="relative">
+              <span className="inline-flex items-center gap-2 border border-cream/20 bg-cream/5 px-3.5 py-1.5 text-xs font-semibold text-mint">
                 <span className="h-1.5 w-1.5 rounded-full bg-turmeric" />
                 Healthcare · Gnani Voice Hackathon
               </span>
 
-              <h1 className="mt-6 text-[2.6rem] font-extrabold leading-[1.04] tracking-tight text-ink sm:text-6xl">
+              <h1 className="mt-6 font-display text-[3.15rem] leading-[0.96] tracking-[-0.035em] sm:text-7xl">
                 Speak the visit.
                 <br />
                 <span className="relative inline-block">
-                  <span className="relative z-10">Confirm the record.</span>
+                  <em className="relative z-10 font-normal text-mint">Confirm the record.</em>
                   <span className="absolute inset-x-0 bottom-1 z-0 h-3 -rotate-1 bg-turmeric/40" />
                 </span>
                 <br />
                 Know what to do next.
               </h1>
 
-              <p className="mt-6 max-w-xl text-[15px] leading-relaxed text-ink/70 sm:text-base">
+              <p className="mt-7 max-w-xl text-[15px] leading-relaxed text-cream/68 sm:text-base">
                 ASHA workers log antenatal, newborn and immunisation visits by typing on small phone screens or
                 writing in paper registers. SwarVani takes her spoken note — Hinglish, health terms and all —
                 turns it into a structured record, reads it back for confirmation, and raises a referral alert the
@@ -149,7 +168,7 @@ export default function Landing({ onStart, onRecords }: Props) {
                 </a>
               </div>
 
-              <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium text-ink/55">
+              <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium text-cream/55">
                 <span className="inline-flex items-center gap-1.5">
                   <PhoneIcon className="h-4 w-4" /> Runs in a phone browser
                 </span>
