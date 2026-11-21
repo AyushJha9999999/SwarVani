@@ -204,8 +204,8 @@ export default function Landing({ user, onStart, onRecords, onSignIn, onSignOut 
         </section>
 
         {/* --------------------------------------------------------- trust */}
-        <section className="border-b border-forest/10 bg-paper">
-          <div className="mx-auto grid w-full max-w-6xl gap-4 px-5 py-6 text-xs font-medium text-ink/60 sm:grid-cols-3">
+        <section className="border-b border-white/10 bg-paper">
+          <div className="mx-auto grid w-full max-w-6xl gap-4 px-5 py-6 text-xs font-bold text-white sm:grid-cols-3">
             <span className="flex items-center gap-2">
               <span className="h-px w-6 bg-turmeric" /> Required speech stack: Gnani Prisma v3.0 + Timbre v3.0
             </span>
@@ -221,11 +221,11 @@ export default function Landing({ user, onStart, onRecords, onSignIn, onSignOut 
         {/* ------------------------------------------------------- problem */}
         <section id="problem" className="border-b border-forest/10">
           <div className="mx-auto w-full max-w-6xl px-5 py-16 sm:py-20">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-moss">The gap</p>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-white">The gap</p>
             <h2 className="mt-3 max-w-2xl text-3xl font-extrabold leading-tight tracking-tight sm:text-[2.6rem]">
               The record is written after the walk, not during it.
             </h2>
-            <p className="mt-4 max-w-2xl text-sm leading-relaxed text-ink/65 sm:text-base">
+            <p className="mt-4 max-w-2xl text-sm font-bold leading-relaxed text-white sm:text-base">
               The intelligence is not the missing piece. Reliability, safety and workflow under real field
               conditions are.
             </p>
@@ -236,20 +236,20 @@ export default function Landing({ user, onStart, onRecords, onSignIn, onSignOut 
                   key={gap.title}
                   className="group rounded-card border border-forest/12 bg-paper p-6 transition hover:-translate-y-0.5 hover:border-forest/25"
                 >
-                  <span className="font-mono text-xs font-semibold text-turmeric">0{i + 1}</span>
-                  <h3 className="mt-4 text-lg font-bold leading-snug">{gap.title}</h3>
-                  <p className="mt-2.5 text-sm leading-relaxed text-ink/65">{gap.body}</p>
+                  <span className="font-mono text-xs font-semibold text-white">0{i + 1}</span>
+                  <h3 className="mt-4 text-lg font-extrabold leading-snug">{gap.title}</h3>
+                  <p className="mt-2.5 text-sm font-semibold leading-relaxed text-white/80">{gap.body}</p>
                 </article>
               ))}
             </div>
 
             <figure className="mt-10 rounded-card bg-forest px-6 py-8 text-cream sm:px-10">
-              <blockquote className="max-w-3xl font-hindi text-lg leading-relaxed text-mint sm:text-xl">
+              <blockquote className="max-w-3xl font-hindi text-lg font-bold leading-relaxed text-white sm:text-xl">
                 “Sunita Devi ka ANC checkup kiya, weight 52 kilo, TT injection de diya, IFA goli di hai, agle
                 mahine 15 ko aana hai.”
               </blockquote>
-              <figcaption className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-cream/60">
-                <span className="rounded-full bg-cream/10 px-2.5 py-1 font-semibold text-cream/85">One utterance</span>
+              <figcaption className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-bold text-white">
+                <span className="rounded-full bg-cream/10 px-2.5 py-1 font-bold text-white">One utterance</span>
                 <span>beneficiary · visit type · weight · vaccination · supplement · next visit</span>
               </figcaption>
             </figure>
@@ -261,13 +261,13 @@ export default function Landing({ user, onStart, onRecords, onSignIn, onSignOut 
           <div className="mx-auto w-full max-w-6xl px-5 py-16 sm:py-20">
             <div className="flex flex-wrap items-end justify-between gap-6">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-moss">The pipeline</p>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-white">The pipeline</p>
                 <h2 className="mt-3 max-w-xl text-3xl font-extrabold leading-tight tracking-tight sm:text-[2.6rem]">
                   Four steps, one spoken sentence.
                 </h2>
               </div>
-              <div className="flex flex-wrap gap-2 text-xs font-semibold text-forest/70">
-                {['React + Tailwind', 'FastAPI WebSocket', 'Gnani Prisma v3.0 STT', 'Open-choice LLM', 'Gnani Timbre v3.0 TTS'].map(
+              <div className="flex flex-wrap gap-2 text-xs font-bold text-white">
+                  {['React + Tailwind', 'FastAPI WebSocket', 'Gnani Prisma v3.0 STT', 'Open-choice LLM', 'Gnani Timbre v3.0 TTS'].map(
                   (chip) => (
                     <span key={chip} className="rounded-full border border-forest/15 bg-cream px-3 py-1.5">
                       {chip}
@@ -286,8 +286,8 @@ export default function Landing({ user, onStart, onRecords, onSignIn, onSignOut 
                     </span>
                     <span className="h-px flex-1 bg-forest/15" />
                   </div>
-                  <h3 className="mt-5 text-base font-bold leading-snug">{step.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-ink/65">{step.body}</p>
+                  <h3 className="mt-5 text-base font-extrabold leading-snug">{step.title}</h3>
+                  <p className="mt-2 text-sm font-semibold leading-relaxed text-white/80">{step.body}</p>
                 </li>
               ))}
             </ol>
@@ -297,21 +297,21 @@ export default function Landing({ user, onStart, onRecords, onSignIn, onSignOut 
         {/* ----------------------------------------------------- visit paths */}
         <section id="visits" className="border-b border-forest/10 bg-paper">
           <div className="mx-auto w-full max-w-6xl px-5 py-16 sm:py-20">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-moss">Visit pathways</p>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-white">Visit pathways</p>
             <div className="mt-3 flex flex-wrap items-end justify-between gap-5">
               <h2 className="max-w-2xl text-3xl font-extrabold leading-tight tracking-tight sm:text-[2.6rem]">
                 One voice workflow for the visits ASHAs make every day.
               </h2>
-              <span className="rounded-full border border-forest/15 bg-cream px-3 py-1.5 text-xs font-semibold text-forest">
+              <span className="rounded-full border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-bold text-white">
                 Structured visit record
               </span>
             </div>
             <div className="mt-9 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {VISIT_PATHS.map((visit) => (
                 <article key={visit.code} className="rounded-card border border-forest/12 bg-cream/60 p-5">
-                  <span className="font-mono text-[11px] font-bold tracking-wider text-moss">{visit.code}</span>
-                  <h3 className="mt-3 text-base font-bold">{visit.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-ink/65">{visit.body}</p>
+                  <span className="font-mono text-[11px] font-extrabold tracking-wider text-white">{visit.code}</span>
+                  <h3 className="mt-3 text-base font-extrabold">{visit.title}</h3>
+                  <p className="mt-2 text-sm font-semibold leading-relaxed text-white/80">{visit.body}</p>
                 </article>
               ))}
             </div>
@@ -332,12 +332,12 @@ export default function Landing({ user, onStart, onRecords, onSignIn, onSignOut 
                 <h2 className="mt-6 text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl">
                   A missed danger sign costs double.
                 </h2>
-                <p className="mt-4 text-sm leading-relaxed text-cream/70">
+                <p className="mt-4 text-sm font-bold leading-relaxed text-white/80">
                   The model never decides whether to escalate. Every transcript passes through a rule engine
                   built from public-health referral criteria, across spellings and code-mix variants, before
                   extraction runs. A weak or uncertain match is still a flag.
                 </p>
-                <ul className="mt-7 space-y-3 text-sm text-cream/80">
+                <ul className="mt-7 space-y-3 text-sm font-bold text-white">
                   <li className="flex gap-3">
                     <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-turmeric" />
                     Referral wording comes from fixed templates, spoken in her language, never generated.
@@ -383,7 +383,7 @@ export default function Landing({ user, onStart, onRecords, onSignIn, onSignOut 
         {/* -------------------------------------------------------- impact */}
         <section className="border-b border-forest/10 bg-paper">
           <div className="mx-auto w-full max-w-6xl px-5 py-16 sm:py-20">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-moss">Who it helps</p>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-white">Who it helps</p>
             <h2 className="mt-3 max-w-2xl text-3xl font-extrabold leading-tight tracking-tight sm:text-[2.6rem]">
               Less typing in the lane. Faster records in the PHC.
             </h2>
@@ -408,13 +408,13 @@ export default function Landing({ user, onStart, onRecords, onSignIn, onSignOut 
               ].map((card) => (
                 <article key={card.title} className="rounded-card border border-forest/12 bg-cream/60 p-6">
                   <span className="grid h-10 w-10 place-items-center rounded-xl bg-forest text-mint">{card.icon}</span>
-                  <h3 className="mt-5 text-lg font-bold">{card.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-ink/65">{card.body}</p>
+                  <h3 className="mt-5 text-lg font-extrabold">{card.title}</h3>
+                  <p className="mt-2 text-sm font-semibold leading-relaxed text-white/80">{card.body}</p>
                 </article>
               ))}
             </div>
 
-            <div className="mt-8 flex flex-wrap gap-2 text-[11px] font-semibold text-forest/70">
+            <div className="mt-8 flex flex-wrap gap-2 text-[11px] font-bold text-white">
               {[
                 'AI disclosure in the first turn',
                 'Encryption configurable by environment',
@@ -422,7 +422,7 @@ export default function Landing({ user, onStart, onRecords, onSignIn, onSignOut 
                 'No voice cloning',
                 'API keys out of the repo',
               ].map((chip) => (
-                <span key={chip} className="rounded-full border border-forest/15 px-3 py-1.5">
+                <span key={chip} className="rounded-full border border-white/30 px-3 py-1.5">
                   {chip}
                 </span>
               ))}
@@ -451,7 +451,7 @@ export default function Landing({ user, onStart, onRecords, onSignIn, onSignOut 
                   <MicIcon className="h-4 w-4" /> Start a voice visit
                 </button>
                 <button
-                  className="inline-flex items-center justify-center gap-2 rounded-full border border-forest/20 px-6 py-3.5 text-sm font-semibold text-forest transition hover:bg-cream"
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-white/30 px-6 py-3.5 text-sm font-bold text-white transition hover:bg-white/10"
                   onClick={onRecords}
                   type="button"
                 >

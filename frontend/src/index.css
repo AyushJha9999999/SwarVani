@@ -90,6 +90,13 @@
 .landing-page .text-ink\/45,
 .landing-page .text-ink\/40 { color: rgba(246, 240, 229, 0.62); }
 
+/* Green → white overrides */
+.landing-page .text-moss,
+.landing-page .text-forest,
+.landing-page [class*="text-forest\/"] { color: #ffffff !important; }
+
+.landing-page .text-mint { color: #ffffff !important; }
+
 @media (prefers-reduced-motion: reduce) {
   .hero-video {
     display: none;
