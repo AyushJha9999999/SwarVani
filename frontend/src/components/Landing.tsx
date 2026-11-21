@@ -71,32 +71,32 @@ export default function Landing({ user, onStart, onRecords, onSignIn, onSignOut 
   }, [])
 
   return (
-    <div className="min-h-screen bg-cream">
-      <header className="sticky top-0 z-40 border-b border-forest/10 bg-cream/85 backdrop-blur-md">
+    <div className="landing-page min-h-screen bg-[#11120f] text-white">
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#10110f]/95 text-white backdrop-blur-md">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-5">
           <a href="#top" className="flex items-center gap-2.5">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-forest text-mint">
+            <span className="grid h-9 w-9 place-items-center border border-white/20 bg-white/5 text-[#e7b665]">
               <WaveIcon className="h-5 w-5" />
             </span>
             <span className="leading-tight">
               <span className="block text-[15px] font-extrabold tracking-tight">स्वरवाणी</span>
-              <span className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-moss">SwarVani</span>
+              <span className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">SwarVani</span>
             </span>
           </a>
-          <nav className="hidden items-center gap-7 text-sm font-medium text-ink/70 md:flex">
-            <a className="transition hover:text-ink" href="#problem">
+          <nav className="hidden items-center gap-7 text-sm font-medium text-white/65 md:flex">
+            <a className="transition hover:text-white" href="#problem">
               Problem
             </a>
-            <a className="transition hover:text-ink" href="#how">
+            <a className="transition hover:text-white" href="#how">
               How it works
             </a>
-            <a className="transition hover:text-ink" href="#visits">
+            <a className="transition hover:text-white" href="#visits">
               Visit types
             </a>
-            <a className="transition hover:text-ink" href="#safety">
+            <a className="transition hover:text-white" href="#safety">
               Safety
             </a>
-            <button className="transition hover:text-ink" onClick={onRecords} type="button">
+            <button className="transition hover:text-white" onClick={onRecords} type="button">
               Follow-ups
             </button>
           </nav>
@@ -112,9 +112,9 @@ export default function Landing({ user, onStart, onRecords, onSignIn, onSignOut 
                 </div>
               </div>
             ) : (
-              <button onClick={onSignIn} type="button" className="hidden items-center gap-2 px-3 py-2 text-sm font-bold text-forest sm:inline-flex"><UserIcon className="h-4 w-4" /> Sign in</button>
+              <button onClick={onSignIn} type="button" className="hidden items-center gap-2 px-3 py-2 text-sm font-bold text-white/80 hover:text-white sm:inline-flex"><UserIcon className="h-4 w-4" /> Sign in</button>
             )}
-            <button className="inline-flex items-center gap-2 bg-forest px-4 py-2.5 text-sm font-semibold text-cream transition hover:bg-forest-deep" onClick={onStart} type="button">
+            <button className="inline-flex items-center gap-2 bg-[#e7b665] px-4 py-2.5 text-sm font-bold text-[#171713] transition hover:bg-[#f0c879]" onClick={onStart} type="button">
               <MicIcon className="h-4 w-4" /> Start a visit
             </button>
           </div>
@@ -123,7 +123,7 @@ export default function Landing({ user, onStart, onRecords, onSignIn, onSignOut 
 
       <main id="top">
         {/* ---------------------------------------------------------- hero */}
-        <section className="hero-scene relative min-h-[45rem] overflow-hidden border-b border-forest/10 bg-forest-deep text-cream">
+        <section className="hero-scene relative min-h-[45rem] overflow-hidden border-b border-white/10 bg-[#10110f] text-white">
           <video
             className="hero-video absolute inset-0 h-full w-full object-cover"
             autoPlay
@@ -165,7 +165,7 @@ export default function Landing({ user, onStart, onRecords, onSignIn, onSignOut 
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <button
-                  className="inline-flex items-center justify-center gap-2.5 rounded-full bg-forest px-6 py-3.5 text-sm font-semibold text-cream shadow-lg shadow-forest/20 transition hover:bg-forest-deep"
+                  className="inline-flex items-center justify-center gap-2.5 bg-[#e7b665] px-6 py-3.5 text-sm font-bold text-[#171713] shadow-lg transition hover:bg-[#f0c879]"
                   onClick={onStart}
                   type="button"
                 >
@@ -174,7 +174,7 @@ export default function Landing({ user, onStart, onRecords, onSignIn, onSignOut 
                   <ArrowIcon className="h-4 w-4" />
                 </button>
                 <a
-                  className="inline-flex items-center justify-center gap-2 rounded-full border border-forest/20 bg-paper/60 px-6 py-3.5 text-sm font-semibold text-forest transition hover:bg-paper"
+                  className="inline-flex items-center justify-center gap-2 border border-white/35 bg-black/25 px-6 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-black/45"
                   href="#how"
                 >
                   See the pipeline
