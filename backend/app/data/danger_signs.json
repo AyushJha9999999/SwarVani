@@ -1,0 +1,156 @@
+{
+  "source": "NHM ASHA Training Module 7 p.55; CEmONC Curriculum 2024 Part 2 p.70; NHM Pregnancy Care p.238",
+  "signs": [
+    {
+      "key": "not_feeding",
+      "label_en": "Not feeding / refuses to feed",
+      "label_hi": "Doodh nahi le raha",
+      "action_hi": "Turant PHC le jaiye",
+      "phrases": [
+        "doodh nahi",
+        "doodh nahin",
+        "feed nahi",
+        "feeding nahi",
+        "not feeding",
+        "refuses to feed",
+        "refusing feed",
+        "दूध नहीं",
+        "दूध नही",
+        "स्तनपान नहीं"
+      ],
+      "fuzzy": [],
+      "who": "newborn",
+      "source": "NHM ASHA Training Module 7 p.55; CEmONC Curriculum 2024 Part 2 p.70; NHM Pregnancy Care p.238"
+    },
+    {
+      "key": "convulsions",
+      "label_en": "Convulsions / fits",
+      "label_hi": "Jhatke aa rahe hain",
+      "action_hi": "Turant PHC le jaiye",
+      "phrases": [
+        "convulsion",
+        "convulsions",
+        "fits",
+        "jhatke",
+        "jhatka",
+        "mirgi",
+        "झटके",
+        "दौरा",
+        "मिर्गी"
+      ],
+      "fuzzy": [],
+      "who": "both",
+      "source": "NHM ASHA Training Module 7 p.55; CEmONC Curriculum 2024 Part 2 p.70; NHM Pregnancy Care p.238"
+    },
+    {
+      "key": "fast_breathing",
+      "label_en": "Fast breathing (60+ per minute)",
+      "label_hi": "Saans tez chal rahi hai",
+      "action_hi": "Turant PHC le jaiye",
+      "phrases": [
+        "fast breathing",
+        "saans tez",
+        "sans tez",
+        "breathing fast",
+        "saans phool",
+        "तेज सांस",
+        "सांस तेज",
+        "तेज़ साँस"
+      ],
+      "fuzzy": [],
+      "who": "newborn",
+      "source": "NHM ASHA Training Module 7 p.55; CEmONC Curriculum 2024 Part 2 p.70; NHM Pregnancy Care p.238"
+    },
+    {
+      "key": "chest_indrawing",
+      "label_en": "Severe chest indrawing",
+      "label_hi": "Seena andar dhans raha hai",
+      "action_hi": "Turant PHC le jaiye",
+      "phrases": [
+        "chest indrawing",
+        "seena dhans",
+        "seene mein dhans",
+        "chest pull",
+        "सीना धंस",
+        "छाती धंस"
+      ],
+      "fuzzy": [],
+      "who": "newborn",
+      "source": "NHM ASHA Training Module 7 p.55; CEmONC Curriculum 2024 Part 2 p.70; NHM Pregnancy Care p.238"
+    },
+    {
+      "key": "fever",
+      "label_en": "Fever (or very low temperature)",
+      "label_hi": "Bukhar hai",
+      "action_hi": "PHC se sampark kijiye, bukhar check karwaiye",
+      "phrases": [
+        "bukhar",
+        "बुखार",
+        "fever",
+        "temperature high",
+        "jwar"
+      ],
+      "fuzzy": [
+        "temp 38",
+        "38 degree",
+        "39 degree"
+      ],
+      "who": "both",
+      "source": "NHM ASHA Training Module 7 p.55; CEmONC Curriculum 2024 Part 2 p.70; NHM Pregnancy Care p.238"
+    },
+    {
+      "key": "jaundice",
+      "label_en": "Yellow palms / soles (jaundice)",
+      "label_hi": "Peelia dikh raha hai",
+      "action_hi": "Turant PHC le jaiye",
+      "phrases": [
+        "peelia",
+        "pilia",
+        "peeliya",
+        "jaundice",
+        "yellow palms",
+        "yellow sole",
+        "पीलिया"
+      ],
+      "fuzzy": [],
+      "who": "newborn",
+      "source": "NHM ASHA Training Module 7 p.55; CEmONC Curriculum 2024 Part 2 p.70; NHM Pregnancy Care p.238"
+    },
+    {
+      "key": "lethargy",
+      "label_en": "Lethargic / unconscious",
+      "label_hi": "Bachcha sust ya behosh hai",
+      "action_hi": "Turant PHC le jaiye",
+      "phrases": [
+        "behosh",
+        "बेहोश",
+        "unconscious",
+        "very lethargic",
+        "bahut sust",
+        "sust hai",
+        "बहुत सुस्त"
+      ],
+      "fuzzy": [],
+      "who": "both",
+      "source": "NHM ASHA Training Module 7 p.55; CEmONC Curriculum 2024 Part 2 p.70; NHM Pregnancy Care p.238"
+    },
+    {
+      "key": "maternal_bleeding",
+      "label_en": "Severe bleeding after delivery",
+      "label_hi": "Zyada khoon beh raha hai",
+      "action_hi": "Turant PHC le jaiye, 108 par call kijiye",
+      "phrases": [
+        "bleeding",
+        "khoon beh",
+        "khoon aa raha",
+        "heavy bleeding",
+        "खून बह",
+        "खून आ रहा",
+        "रक्तस्राव"
+      ],
+      "fuzzy": [],
+      "who": "mother",
+      "source": "NHM ASHA Training Module 7 p.55; CEmONC Curriculum 2024 Part 2 p.70; NHM Pregnancy Care p.238"
+    }
+  ]
+}

@@ -1,0 +1,265 @@
+"""FastAPI entrypoint: HTTP API + the voice WebSocket.
+
+Run from backend/:
+    python -m uvicorn app.main:app --reload --port 8000
+"""
+
+from __future__ import annotations
+
+import logging
+import asyncio
+import json
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
+
+from . import db
+from . import danger_signs
+from .config import settings
+from .gnani import open_stt, parse_stt_message, synthesize
+from .pipeline import VisitSession
+
+log = logging.getLogger("swarvani")
+logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    if not settings.demo_mode and not settings.speech_ready:
+        raise RuntimeError("Live mode requires GNANI_API_KEY and the configured Gnani Prisma/Timbre WebSocket endpoints")
+    if not settings.demo_mode and not db.encryption_enabled():
+        raise RuntimeError("Live mode requires a valid SV_DB_KEY so visit records are encrypted at rest")
+    db.init_db()
+    log.info(
+        "SwarVani ready | demo=%s speech=%s llm=%s encryption=%s",
+        settings.demo_mode,
+        "gnani" if settings.use_speech_api else "browser",
+        settings.llm_model if settings.use_llm else "rules",
+        db.encryption_enabled(),
+    )
+    yield
+
+
+app = FastAPI(title="SwarVani API", version="0.1.0", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.allowed_origins,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["*"],
+)
+
+
+@app.get("/api/health")
+async def health() -> dict:
+    return {
+        "status": "ok",
+        "demoMode": settings.demo_mode,
+        "speech": "gnani" if settings.use_speech_api else "browser",
+        "llm": settings.llm_model if settings.use_llm else "rules",
+        "speechModels": {"stt": "Prisma v3.0", "tts": "Timbre v3.0"} if settings.use_speech_api else None,
+        "encryption": db.encryption_enabled(),
+        "stats": db.stats(),
+    }
+
+
+@app.get("/api/records")
+async def records(limit: int = 50) -> dict:
+    return {"records": db.list_records(limit=max(1, min(limit, 200)))}
+
+
+@app.get("/api/followups")
+async def followups() -> dict:
+    return {"followUps": db.follow_ups()}
+
+
+@app.get("/api/danger-signs")
+async def danger_sign_catalog() -> dict:
+    return {
+        "source": danger_signs.SOURCE,
+        "signs": [
+            {"key": item.key, "labelEn": item.label_en, "labelHi": item.label_hi, "who": item.who}
+            for item in danger_signs.DANGER_SIGNS
+        ],
+    }
+
+
+@app.post("/api/purge-transcripts")
+async def purge_transcripts() -> dict:
+    """Post-judging retention step: remove raw transcripts, keep the records."""
+    return {"purged": db.purge_transcripts()}
+
+
+@app.websocket("/ws/session")
+async def voice_session(websocket: WebSocket) -> None:
+    await websocket.accept()
+    session = VisitSession()
+    send_lock = asyncio.Lock()
+    transcript_queue: asyncio.Queue[str] = asyncio.Queue()
+    final_transcript = asyncio.Event()
+    stt = None
+    reader = None
+
+    async def send_event(event: dict) -> None:
+        if event.get("speak") and settings.use_speech_api and event.get("type") != "danger":
+            try:
+                # Speech output is optional: a Timbre outage must never block
+                # danger alerts, extracted fields, or saving the visit. The
+                # browser falls back to its built-in speech synthesis when the
+                # audio field is absent or null.
+                audio = await asyncio.wait_for(
+                    synthesize(event.get("text", "")),
+                    timeout=8,
+                )
+            except Exception:
+                audio = None
+                log.warning("Gnani Timbre unavailable; sending text response with browser speech fallback")
+            if audio:
+                event["audio"] = audio
+            else:
+                event["audio"] = None
+        async with send_lock:
+            await websocket.send_json(event)
+
+    async def send_events(events: list[dict]) -> None:
+        for event in events:
+            if event.get("type") == "saved":
+                try:
+                    db.save_record(event["record"])
+                except Exception:
+                    session.saved = False
+                    session.state = "awaiting_confirmation"
+                    log.exception("Could not save visit for session %s", session.id)
+                    await send_event({"type": "error", "message": "Could not save the visit. Please try confirming again."})
+                    return
+            await send_event(event)
+
+    async def handle_message(message: dict) -> None:
+        # Show deterministic flags immediately, before extraction or optional
+        # speech synthesis can block the visual alert.
+        alerted = False
+        if message.get("type") in {"utterance", "correct"} and not session.saved:
+            matches = danger_signs.scan(str(message.get("text") or ""))
+            existing = {sign["key"] for sign in session.record.dangerSigns}
+            new = [match for match in matches if match.key not in existing]
+            if new:
+                await send_event({"type": "danger", "signs": session.record.dangerSigns + [m.as_dict() for m in new],
+                                  "message": danger_signs.referral_message(matches), "speak": True})
+                alerted = True
+        events = await session.handle(message)
+        await send_events([event for event in events if not (alerted and event["type"] == "danger")])
+
+    async def read_transcripts(upstream) -> None:
+        async for frame in upstream:
+            parsed = await parse_stt_message(frame)
+            if not parsed:
+                continue
+            if parsed.get("error"):
+                await send_event({"type": "error", "message": parsed["error"]})
+                continue
+            if parsed.get("text"):
+                if not parsed["final"]:
+                    await send_event({"type": "transcript", "text": parsed["text"], "final": False})
+                    continue
+                await transcript_queue.put(parsed["text"])
+                final_transcript.set()
+
+    async def process_transcripts() -> None:
+        while True:
+            text = await transcript_queue.get()
+            try:
+                await send_event({"type": "transcript", "text": text, "final": True})
+                kind = "correct" if session.state == "awaiting_confirmation" and not session._is_confirmation(text) else "utterance"
+                await handle_message({"type": kind, "text": text})
+            except Exception:
+                log.exception("voice response failed for session %s", session.id)
+                await send_event({"type": "error", "message": "Voice response failed. Check Gnani Timbre configuration and try again."})
+            finally:
+                transcript_queue.task_done()
+
+    await websocket.send_json(
+        {
+            "type": "hello",
+            "sessionId": session.id,
+            "demo": settings.demo_mode or not settings.speech_ready,
+            "speech": "gnani" if settings.use_speech_api else "browser",
+            "llm": settings.llm_model if settings.use_llm else "rules",
+            "language": settings.language,
+        }
+    )
+    processor = asyncio.create_task(process_transcripts())
+    try:
+        while True:
+            packet = await websocket.receive()
+            if packet.get("type") == "websocket.disconnect":
+                break
+            if packet.get("bytes") is not None:
+                if stt is None:
+                    await send_event({"type": "error", "message": "Live speech is not configured. Use the demo microphone or type a visit note."})
+                else:
+                    await stt.send(packet["bytes"])
+                continue
+            raw = packet.get("text")
+            if not raw:
+                continue
+            try:
+                message = json.loads(raw)
+            except json.JSONDecodeError:
+                await send_event({"type": "error", "message": "Invalid JSON message"})
+                continue
+            if not isinstance(message, dict) or not isinstance(message.get("type"), str):
+                await send_event({"type": "error", "message": "Message must include a string type"})
+                continue
+            if message.get("type") == "audio_start":
+                if not settings.use_speech_api:
+                    await send_event({"type": "error", "message": "Gnani live speech is not configured. Use demo browser speech or type a note."})
+                    continue
+                if stt is None:
+                    try:
+                        final_transcript.clear()
+                        stt = await open_stt()
+                        reader = asyncio.create_task(read_transcripts(stt))
+                    except Exception:
+                        log.exception("Prisma stream could not start for session %s", session.id)
+                        stt = None
+                        await send_event({"type": "error", "message": "Could not connect to Gnani Prisma. Check the API key and streaming access."})
+                continue
+            if message.get("type") == "audio_stop":
+                if stt is not None:
+                    await stt.send(json.dumps({"type": "commit"}))
+                    try:
+                        # Wait for Prisma's final transcript only. Queue processing
+                        # also includes extraction and TTS, which can take much
+                        # longer and must not be reported as a transcription error.
+                        await asyncio.wait_for(final_transcript.wait(), timeout=15)
+                    except asyncio.TimeoutError:
+                        await send_event({
+                            "type": "error",
+                            "message": "No transcript came back from Gnani Prisma. Check the speech connection and try again.",
+                        })
+                    await stt.close()
+                    stt = None
+                    if reader is not None:
+                        try:
+                            await asyncio.wait_for(reader, timeout=1)
+                        except asyncio.TimeoutError:
+                            reader.cancel()
+                        reader = None
+                continue
+            await handle_message(message)
+    except WebSocketDisconnect:
+        pass
+    except Exception:  # keep the socket usable, never leak a traceback to the phone
+        log.exception("session %s failed", session.id)
+        try:
+            await websocket.send_json({"type": "error", "message": "The session hit an error. Check the service settings and retry."})
+        except Exception:
+            pass
+    finally:
+        if reader is not None:
+            reader.cancel()
+        processor.cancel()
+        if stt is not None:
+            await stt.close()

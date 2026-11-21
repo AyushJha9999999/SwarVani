@@ -1,0 +1,31 @@
+# --- secrets ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.data/
+*.db
+*.sqlite3
+
+# --- node ---
+node_modules/
+dist/
+.vite/
+.runtime/
+
+# --- os / editors ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# --- local Codex / desktop state ---
+.cloud-attachments/
+.freebuff/

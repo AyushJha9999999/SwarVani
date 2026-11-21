@@ -1,0 +1,78 @@
+"""Environment-backed configuration.
+
+Everything is read once at import time and exposed as a frozen Settings object.
+No secret is ever logged or returned by an API route.
+"""
+
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass, field
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
+
+
+def _env(name: str, default: str = "") -> str:
+    return (os.getenv(name) or default).strip()
+
+
+def _flag(name: str, default: bool) -> bool:
+    raw = _env(name)
+    if not raw:
+        return default
+    return raw.lower() in {"1", "true", "yes", "on"}
+
+
+@dataclass(frozen=True)
+class Settings:
+    demo_mode: bool = field(default_factory=lambda: _flag("SV_DEMO_MODE", True))
+    db_path: Path = field(
+        default_factory=lambda: BASE_DIR / (_env("SV_DB_PATH", ".data/swarvani.db") or ".data/swarvani.db")
+    )
+    db_key: str = field(default_factory=lambda: _env("SV_DB_KEY"))
+    gnani_api_key: str = field(default_factory=lambda: _env("GNANI_API_KEY"))
+    gnani_stt_ws_url: str = field(
+        default_factory=lambda: _env("GNANI_STT_WS_URL", "wss://api.vachana.ai/stt/v3/stream")
+    )
+    gnani_tts_ws_url: str = field(
+        default_factory=lambda: _env("GNANI_TTS_WS_URL", "wss://api.vachana.ai/api/v1/tts")
+    )
+    gnani_tts_voice: str = field(default_factory=lambda: _env("GNANI_TTS_VOICE", "Shivani"))
+    language: str = field(default_factory=lambda: _env("GNANI_LANGUAGE", "hi-IN"))
+    llm_base_url: str = field(default_factory=lambda: _env("LLM_BASE_URL"))
+    llm_api_key: str = field(default_factory=lambda: _env("LLM_API_KEY"))
+    llm_model: str = field(default_factory=lambda: _env("LLM_MODEL"))
+    allowed_origins: list[str] = field(
+        default_factory=lambda: [
+            o.strip()
+            for o in _env(
+                "SV_ALLOWED_ORIGINS",
+                "http://localhost:5173,http://127.0.0.1:5173",
+            ).split(",")
+            if o.strip()
+        ]
+    )
+
+    @property
+    def speech_ready(self) -> bool:
+        """True when both Gnani STT and TTS are configured."""
+        return bool(self.gnani_api_key and self.gnani_stt_ws_url and self.gnani_tts_ws_url)
+
+    @property
+    def llm_ready(self) -> bool:
+        return bool(self.llm_base_url and self.llm_model)
+
+    @property
+    def use_speech_api(self) -> bool:
+        return (not self.demo_mode) and self.speech_ready
+
+    @property
+    def use_llm(self) -> bool:
+        return (not self.demo_mode) and self.llm_ready
+
+
+settings = Settings()
