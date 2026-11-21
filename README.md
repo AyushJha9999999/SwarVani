@@ -2,7 +2,95 @@
 
 SwarVani is a voice-first visit-register prototype for ASHA workers. It accepts synthetic visit notes, extracts a fixed visit schema, checks phrases against a deterministic danger-sign list, reads the record back for confirmation, and saves confirmed visits with follow-ups.
 
-## Hackathon stack
+## What it does
+
+- Captures Hindi, Hinglish, and English visit notes through the microphone or text input.
+- Converts spoken names, IDs, measurements, blood pressure, haemoglobin, and dates into structured fields.
+- Checks every transcript against deterministic danger-sign rules before model extraction.
+- Reads the completed record back, accepts field-level corrections, and saves only after confirmation.
+- Maintains a follow-up board and supports transcript purging while retaining structured records.
+- Queues assistant speech to prevent overlapping replies and provides a mute control.
+
+## System architecture
+
+```mermaid
+flowchart LR
+    A[ASHA worker] -->|voice or typed note| B[React web app]
+    B -->|16 kHz PCM + JSON events| C[FastAPI WebSocket<br/>/ws/session]
+
+    subgraph Backend[FastAPI backend]
+        C --> D[Visit session<br/>state machine]
+        D --> E[Deterministic<br/>danger-sign scan]
+        E --> F[Structured extractor]
+        F --> G[Schema validation +<br/>field normalization]
+        G --> H[Read-back and<br/>confirmation]
+        H --> I[(SQLite records)]
+        I -. optional .-> J[Fernet encryption]
+    end
+
+    C <-->|streaming STT| K[Gnani Prisma v3.0]
+    H <-->|streaming TTS| L[Gnani Timbre v3.0]
+    F <-->|JSON extraction| M[OpenAI-compatible LLM]
+    F -. fallback .-> N[Local rules extractor]
+
+    E -->|immediate referral alert| B
+    H -->|record, audio, follow-ups| B
+    B -->|REST /api endpoints| C
+```
+
+API credentials remain on the backend. The browser communicates only with SwarVani's HTTP and WebSocket endpoints.
+
+## Voice-processing flow
+
+```mermaid
+sequenceDiagram
+    actor Worker as ASHA worker
+    participant UI as React client
+    participant API as FastAPI session
+    participant STT as Gnani Prisma
+    participant Safety as Danger rules
+    participant Extract as LLM / rules extractor
+    participant TTS as Gnani Timbre
+    participant DB as SQLite
+
+    Worker->>UI: Speak visit note
+    UI->>API: Stream mono 16 kHz PCM
+    API->>STT: Forward audio securely
+    STT-->>API: Final transcript
+    API->>Safety: Scan raw transcript first
+    Safety-->>UI: Immediate danger alert, if matched
+    API->>Extract: Extract and normalize allowed fields
+    Extract-->>API: Validated visit record
+    API->>TTS: Generate read-back audio
+    API-->>UI: Record + queued read-back
+    Worker->>UI: Confirm or correct one field
+    UI->>API: Confirmation / correction
+    API->>DB: Save confirmed record
+    API-->>UI: Saved status + follow-ups
+```
+
+## Tech stack
+
+| Layer | Technology | Purpose |
+| --- | --- | --- |
+| Frontend | React 19 + TypeScript 5.8 | Responsive visit workflow and structured record UI |
+| Styling | Tailwind CSS 4 | Mobile-first design system and accessible status states |
+| Build tooling | Vite 7 | Development server, production bundling, and API/WebSocket proxying |
+| Backend | Python 3.11+ + FastAPI | REST API, WebSocket endpoint, validation, and orchestration |
+| Application server | Uvicorn | ASGI server for HTTP and persistent WebSocket connections |
+| Speech-to-text | Gnani Prisma v3.0 | Streaming Hindi/code-mixed transcription |
+| Text-to-speech | Gnani Timbre v3.0 | Streaming assistant read-back audio |
+| Structured extraction | OpenAI-compatible chat-completions API | JSON extraction into the fixed visit schema |
+| Offline fallback | Deterministic Python extractor | Names, spoken numbers, IDs, measurements, dates, and corrections |
+| Safety layer | Deterministic phrase matcher + JSON catalog | Danger-sign detection independent of the LLM |
+| Storage | SQLite | Confirmed visit records and follow-up data |
+| Encryption | `cryptography` / Fernet | Optional encryption of stored record payloads |
+| Backend networking | HTTPX + `websockets` | LLM HTTP calls and Gnani streaming connections |
+| Production proxy | NGINX | Static frontend hosting plus `/api` and `/ws` reverse proxying |
+| Containers | Docker + Docker Compose | Reproducible frontend/backend deployment and persistent storage |
+| Verification | Python `unittest`, smoke checks, TypeScript compiler | Session, API, safety, storage, and production-build checks |
+
+### Voice and AI services
 
 - **STT:** Gnani Prisma v3.0 through a backend WebSocket. The browser streams mono 16 kHz PCM to FastAPI; the API key stays on the backend.
 - **TTS:** Gnani Timbre v3.0 through its realtime WebSocket endpoint.
@@ -11,6 +99,34 @@ SwarVani is a voice-first visit-register prototype for ASHA workers. It accepts 
 - **Safety:** deterministic phrase matcher runs before LLM extraction; it does not diagnose or give treatment advice.
 
 The demo mode uses browser speech recognition and the local rules extractor. It avoids external model calls so the interface can be tried before credentials are configured.
+
+## Repository structure
+
+```text
+SwarVani/
+├── frontend/
+│   ├── src/
+│   │   ├── components/       # Visit form, danger alert, landing page, icons
+│   │   └── lib/              # WebSocket session hook and shared types
+│   ├── nginx.conf            # Production reverse proxy
+│   ├── vite.config.ts        # Local /api and /ws proxies
+│   └── Dockerfile
+├── backend/
+│   ├── app/
+│   │   ├── main.py           # FastAPI REST + WebSocket entrypoint
+│   │   ├── pipeline.py       # Visit-session state machine
+│   │   ├── extract.py        # LLM and deterministic extraction
+│   │   ├── normalization.py  # Spoken-number and Hindi-name normalization
+│   │   ├── danger_signs.py   # Deterministic safety matcher
+│   │   ├── gnani.py          # Prisma and Timbre adapters
+│   │   ├── db.py             # SQLite and Fernet storage
+│   │   └── schemas.py        # Visit-record schema
+│   ├── scripts/              # Smoke and regression checks
+│   ├── .env.example
+│   └── Dockerfile
+├── docker-compose.yml
+└── README.md
+```
 
 ## Run locally on Windows
 
