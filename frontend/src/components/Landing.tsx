@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { WorkerProfile } from '../lib/auth'
+import type { WhatsAppUpdatesPayload } from '../lib/types'
 import { workerInitials } from '../lib/auth'
-import { ArrowIcon, ClipboardIcon, ListIcon, LogoutIcon, MicIcon, PhoneIcon, ShieldIcon, SparkIcon, UserIcon, WaveIcon } from './Icons'
+import { ArrowIcon, ClipboardIcon, ListIcon, LogoutIcon, MicIcon, PhoneIcon, ShieldIcon, SparkIcon, UserIcon, WaveIcon, WhatsAppIcon } from './Icons'
 
 type Props = {
   user: WorkerProfile | null
@@ -11,6 +12,20 @@ type Props = {
   onSignOut: () => void
 }
 type DangerPreview = { key: string; labelEn: string; labelHi: string; who: string }
+
+const EMPTY_WHATSAPP: WhatsAppUpdatesPayload = {
+  updates: [],
+  summary: { confirmed: 0, reschedule_requested: 0, no_response: 0, asha_callback_requested: 0 },
+  webhookConfigured: false,
+  sendingConfigured: false,
+}
+
+const WHATSAPP_LABELS = {
+  confirmed: 'Confirmed',
+  reschedule_requested: 'Reschedule',
+  no_response: 'No response',
+  asha_callback_requested: 'ASHA callback',
+} as const
 
 const STEPS = [
   {
@@ -22,8 +37,8 @@ const STEPS = [
     body: 'A rule engine scans every word against a cited danger-sign list before any model sees it.',
   },
   {
-    title: 'The form is read back',
-    body: 'She hears the structured record. "Nahi, wajan 2.8 kilo" changes only that field.',
+    title: 'The form appears for review',
+    body: 'The structured record stays on screen. "Nahi, wajan 2.8 kilo" changes only that field.',
   },
   {
     title: 'Save and follow up',
@@ -56,6 +71,8 @@ const VISIT_PATHS = [
 export default function Landing({ user, onStart, onRecords, onSignIn, onSignOut }: Props) {
   const [dangerPreview, setDangerPreview] = useState<DangerPreview[]>([])
   const [dangerSource, setDangerSource] = useState('')
+  const [whatsappOpen, setWhatsappOpen] = useState(false)
+  const [whatsappData, setWhatsappData] = useState<WhatsAppUpdatesPayload>(EMPTY_WHATSAPP)
 
   useEffect(() => {
     let active = true
@@ -69,6 +86,23 @@ export default function Landing({ user, onStart, onRecords, onSignIn, onSignOut 
       .catch(() => undefined)
     return () => { active = false }
   }, [])
+
+  useEffect(() => {
+    if (!whatsappOpen) return
+    let active = true
+    const loadUpdates = () => {
+      fetch('/api/whatsapp/updates')
+        .then((response) => response.ok ? response.json() as Promise<WhatsAppUpdatesPayload> : Promise.reject())
+        .then((payload) => { if (active) setWhatsappData(payload) })
+        .catch(() => undefined)
+    }
+    loadUpdates()
+    const refreshTimer = window.setInterval(loadUpdates, 5000)
+    return () => {
+      active = false
+      window.clearInterval(refreshTimer)
+    }
+  }, [whatsappOpen])
 
   return (
     <div className="landing-page min-h-screen bg-[#11120f] text-white">
@@ -92,6 +126,9 @@ export default function Landing({ user, onStart, onRecords, onSignIn, onSignOut 
             </a>
             <a className="transition hover:text-white" href="#visits">
               Visit types
+            </a>
+            <a className="transition hover:text-white" href="#whatsapp">
+              WhatsApp
             </a>
             <a className="transition hover:text-white" href="#safety">
               Safety
@@ -164,7 +201,7 @@ export default function Landing({ user, onStart, onRecords, onSignIn, onSignOut 
               <p className="hero-copy-glow mt-7 max-w-xl text-[15px] leading-relaxed text-white sm:text-base">
                 ASHA workers log antenatal, newborn and immunisation visits by typing on small phone screens or
                 writing in paper registers. SwarVani takes her spoken note — Hinglish, health terms and all —
-                turns it into a structured record, reads it back for confirmation, and raises a referral alert the
+                turns it into a structured record, shows it for confirmation, and raises a referral alert the
                 moment a danger sign is spoken.
               </p>
 
@@ -207,7 +244,7 @@ export default function Landing({ user, onStart, onRecords, onSignIn, onSignOut 
         <section className="border-b border-white/10 bg-paper">
           <div className="mx-auto grid w-full max-w-6xl gap-4 px-5 py-6 text-xs font-bold text-white sm:grid-cols-3">
             <span className="flex items-center gap-2">
-              <span className="h-px w-6 bg-turmeric" /> Required speech stack: Gnani Prisma v3.0 + Timbre v3.0
+              <span className="h-px w-6 bg-turmeric" /> Gnani Prisma v3.0 input · text-only assistant
             </span>
             <span className="flex items-center gap-2">
               <span className="h-px w-6 bg-turmeric" /> Deterministic danger-sign engine
@@ -267,7 +304,7 @@ export default function Landing({ user, onStart, onRecords, onSignIn, onSignOut 
                 </h2>
               </div>
               <div className="flex flex-wrap gap-2 text-xs font-bold text-white">
-                  {['React + Tailwind', 'FastAPI WebSocket', 'Gnani Prisma v3.0 STT', 'Open-choice LLM', 'Gnani Timbre v3.0 TTS'].map(
+                  {['React + Tailwind', 'FastAPI WebSocket', 'Gnani Prisma v3.0 STT', 'Open-choice LLM', 'Text-only output'].map(
                   (chip) => (
                     <span key={chip} className="rounded-full border border-forest/15 bg-cream px-3 py-1.5">
                       {chip}
@@ -291,6 +328,61 @@ export default function Landing({ user, onStart, onRecords, onSignIn, onSignOut 
                 </li>
               ))}
             </ol>
+          </div>
+        </section>
+
+        {/* ------------------------------------------------ WhatsApp loop */}
+        <section id="whatsapp" className="border-b border-white/10 bg-[#10110f]">
+          <div className="mx-auto grid w-full max-w-6xl gap-10 px-5 py-16 sm:py-20 lg:grid-cols-[1fr_0.9fr] lg:items-center">
+            <div>
+              <span className="inline-flex items-center gap-2 rounded-full border border-[#25d366]/35 bg-[#25d366]/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.16em] text-[#7ff0a5]">
+                <WhatsAppIcon className="h-4 w-4" /> WhatsApp follow-up loop
+              </span>
+              <h2 className="mt-5 max-w-2xl text-3xl font-extrabold leading-tight tracking-tight sm:text-[2.6rem]">
+                Every reply moves the follow-up board.
+              </h2>
+              <p className="mt-4 max-w-xl text-sm font-semibold leading-relaxed text-white/75 sm:text-base">
+                Approved quick replies carry the SwarVani record ID back through a verified webhook. The ASHA queue refreshes automatically without exposing the visit transcript.
+              </p>
+              <div className="mt-7 grid gap-3 sm:grid-cols-2">
+                {[
+                  ['Confirmed', 'Visit acknowledged'],
+                  ['Reschedule requested', 'Date needs follow-up'],
+                  ['No response', 'Still waiting'],
+                  ['ASHA callback requested', 'Worker action needed'],
+                ].map(([title, body]) => (
+                  <div key={title} className="border border-white/10 bg-white/5 p-4">
+                    <p className="text-sm font-extrabold text-white">{title}</p>
+                    <p className="mt-1 text-xs font-semibold text-white/55">{body}</p>
+                  </div>
+                ))}
+              </div>
+              <button onClick={onRecords} type="button" className="mt-7 inline-flex items-center gap-2 bg-[#25d366] px-5 py-3 text-sm font-extrabold text-[#082a23] transition hover:bg-[#55df83]">
+                <ListIcon className="h-4 w-4" /> Open synchronized board
+              </button>
+            </div>
+
+            <div className="mx-auto w-full max-w-sm rounded-[2rem] border border-white/15 bg-[#0b1712] p-3 shadow-2xl">
+              <div className="overflow-hidden rounded-[1.45rem] bg-[#efe9df] text-[#17211c]">
+                <div className="flex items-center gap-3 bg-[#075e54] px-4 py-3 text-white">
+                  <span className="grid h-9 w-9 place-items-center rounded-full bg-white/15"><WhatsAppIcon className="h-5 w-5" /></span>
+                  <div><p className="text-sm font-extrabold">SwarVani follow-up</p><p className="text-[10px] text-white/65">Automated reminder</p></div>
+                </div>
+                <div className="space-y-3 p-4">
+                  <div className="mr-7 rounded-xl rounded-tl-sm bg-white p-4 shadow-sm">
+                    <p className="text-sm font-bold">Namaste Sita ji.</p>
+                    <p className="mt-2 text-xs leading-relaxed text-[#435249]">Aapki agli ANC visit 15 December ko hai. Kripya apna status batayein.</p>
+                    <p className="mt-2 text-[9px] text-[#78857e]">Record SV-••••1234</p>
+                  </div>
+                  {['Confirm', 'Change date', 'Request ASHA call'].map((reply) => (
+                    <div key={reply} className="rounded-lg border border-[#075e54]/15 bg-white px-4 py-2.5 text-center text-xs font-extrabold text-[#087b67]">{reply}</div>
+                  ))}
+                  <div className="flex items-center justify-center gap-2 pt-2 text-[10px] font-bold text-[#66736c]">
+                    <span className="h-2 w-2 rounded-full bg-[#25d366]" /> Reply synchronized to follow-up board
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -340,7 +432,7 @@ export default function Landing({ user, onStart, onRecords, onSignIn, onSignOut 
                 <ul className="mt-7 space-y-3 text-sm font-bold text-white">
                   <li className="flex gap-3">
                     <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-turmeric" />
-                    Referral wording comes from fixed templates, spoken in her language, never generated.
+                    Referral wording comes from fixed text templates in her language, never generated.
                   </li>
                   <li className="flex gap-3">
                     <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-turmeric" />
@@ -439,7 +531,7 @@ export default function Landing({ user, onStart, onRecords, onSignIn, onSignOut 
                   A walk between houses becomes a complete, confirmed record.
                 </h2>
                 <p className="mt-4 max-w-xl text-sm leading-relaxed text-ink/65">
-                  Try the prototype with synthetic notes. Set your Gnani API key to use live Prisma and Timbre speech; browser speech remains available for a local demo.
+                  Try the prototype with synthetic notes. Live Prisma handles speech input, while assistant responses remain text-only and WhatsApp replies synchronize follow-up status.
                 </p>
               </div>
               <div className="flex w-full flex-col gap-3 sm:w-auto">
@@ -472,6 +564,45 @@ export default function Landing({ user, onStart, onRecords, onSignIn, onSignOut 
           <p>Use synthetic data only · Not for clinical use</p>
         </div>
       </footer>
+
+      {whatsappOpen && (
+        <aside role="dialog" aria-label="WhatsApp follow-up center" className="fixed bottom-24 right-5 z-50 w-[min(24rem,calc(100vw-2.5rem))] overflow-hidden rounded-3xl border border-white/15 bg-[#101d17] text-white shadow-2xl">
+          <div className="flex items-center justify-between bg-[#075e54] px-5 py-4">
+            <div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-full bg-white/15"><WhatsAppIcon className="h-6 w-6" /></span><div><p className="font-extrabold">WhatsApp follow-ups</p><p className="text-[11px] text-white/65">Updates refresh every five seconds</p></div></div>
+            <button type="button" onClick={() => setWhatsappOpen(false)} aria-label="Close WhatsApp follow-up center" className="grid h-8 w-8 place-items-center rounded-full bg-black/15 text-lg text-white/80 hover:text-white">×</button>
+          </div>
+          <div className="p-5">
+            <div className="flex items-center gap-2 text-xs font-bold">
+              <span className={`h-2.5 w-2.5 rounded-full ${whatsappData.webhookConfigured && whatsappData.sendingConfigured ? 'bg-[#25d366]' : 'bg-turmeric'}`} />
+              {whatsappData.webhookConfigured && whatsappData.sendingConfigured ? 'WhatsApp connected' : 'Meta credentials required for live replies'}
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              {(Object.keys(WHATSAPP_LABELS) as Array<keyof typeof WHATSAPP_LABELS>).map((status) => (
+                <div key={status} className="rounded-xl bg-white/7 p-3"><p className="text-xl font-extrabold">{whatsappData.summary[status]}</p><p className="mt-1 text-[10px] font-bold text-white/55">{WHATSAPP_LABELS[status]}</p></div>
+              ))}
+            </div>
+            <div className="mt-4 border-t border-white/10 pt-4">
+              {whatsappData.updates.length === 0 ? <p className="text-xs leading-relaxed text-white/55">Incoming beneficiary replies will appear here and in the dashboard updates column.</p> : (
+                <ul className="space-y-3">
+                  {whatsappData.updates.slice(0, 3).map((update) => <li key={`${update.recordId}-${update.createdAt}`}><p className="text-sm font-bold">{update.beneficiaryName || update.recordId}</p><p className="mt-0.5 text-xs text-white/55">{WHATSAPP_LABELS[update.status]}{update.reply ? ` · ${update.reply}` : ''}</p></li>)}
+                </ul>
+              )}
+            </div>
+            <button type="button" onClick={onRecords} className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#25d366] px-4 py-3 text-sm font-extrabold text-[#082a23]"><ListIcon className="h-4 w-4" /> Open updates dashboard</button>
+          </div>
+        </aside>
+      )}
+
+      <button
+        type="button"
+        onClick={() => setWhatsappOpen((open) => !open)}
+        aria-label="Open WhatsApp follow-up center"
+        aria-expanded={whatsappOpen}
+        className="fixed bottom-5 right-5 z-50 grid h-16 w-16 place-items-center rounded-full bg-[#25d366] text-[#082a23] shadow-[0_12px_36px_rgba(37,211,102,0.35)] transition hover:scale-105 hover:bg-[#55df83]"
+      >
+        <WhatsAppIcon className="h-8 w-8" />
+        {whatsappData.updates.length > 0 && <span className="absolute -right-1 -top-1 grid h-6 min-w-6 place-items-center rounded-full bg-danger px-1 text-[10px] font-extrabold text-white">{Math.min(whatsappData.updates.length, 99)}</span>}
+      </button>
     </div>
   )
 }

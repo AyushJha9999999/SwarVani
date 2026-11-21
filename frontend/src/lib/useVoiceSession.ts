@@ -188,9 +188,11 @@ export function useVoiceSession() {
   }, [])
 
   const speak = useCallback((text: string, audio?: string | null) => {
-    if (!text || mutedRef.current) return
-    speechQueueRef.current.push({ text, audio })
-    playNextSpeechRef.current()
+    // SwarVani accepts microphone input, but assistant responses are always
+    // rendered as text. Keep this no-op as a final client-side guard even if
+    // an older backend sends a speak/audio field.
+    void text
+    void audio
   }, [])
 
   const toggleMute = useCallback(() => {

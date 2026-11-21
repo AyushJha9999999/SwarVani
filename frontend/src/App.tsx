@@ -3,13 +3,20 @@ import DangerAlert from './components/DangerAlert'
 import Landing from './components/Landing'
 import SignIn from './components/SignIn'
 import VisitForm from './components/VisitForm'
-import { ArrowIcon, BackIcon, CheckIcon, ClipboardIcon, HomeIcon, ListIcon, LogoutIcon, MicIcon, MutedIcon, SpeakerIcon, StopIcon, WaveIcon } from './components/Icons'
+import { ArrowIcon, BackIcon, CheckIcon, ClipboardIcon, HomeIcon, ListIcon, LogoutIcon, MicIcon, StopIcon, WaveIcon } from './components/Icons'
 import { clearWorker, loadWorker, saveWorker, workerInitials } from './lib/auth'
 import type { WorkerProfile } from './lib/auth'
 import { useVoiceSession } from './lib/useVoiceSession'
-import type { FollowUp } from './lib/types'
+import type { FollowUp, WhatsAppUpdate, WhatsAppUpdatesPayload } from './lib/types'
 
 type Page = 'landing' | 'signin' | 'visit' | 'followups'
+
+const WHATSAPP_STATUS = {
+  confirmed: { label: 'Confirmed', className: 'bg-mint text-forest' },
+  reschedule_requested: { label: 'Reschedule requested', className: 'bg-turmeric/25 text-[#80520c]' },
+  no_response: { label: 'No response', className: 'bg-cream text-ink/60' },
+  asha_callback_requested: { label: 'ASHA callback requested', className: 'bg-danger-soft text-danger' },
+} as const
 
 export default function App() {
   const [page, setPage] = useState<Page>('landing')
@@ -18,6 +25,14 @@ export default function App() {
   const voice = useVoiceSession()
   const [correction, setCorrection] = useState('')
   const [followUps, setFollowUps] = useState<FollowUp[]>([])
+  const [whatsappUpdates, setWhatsappUpdates] = useState<WhatsAppUpdate[]>([])
+  const [whatsappSummary, setWhatsappSummary] = useState<WhatsAppUpdatesPayload['summary']>({
+    confirmed: 0,
+    reschedule_requested: 0,
+    no_response: 0,
+    asha_callback_requested: 0,
+  })
+  const [whatsappConfigured, setWhatsappConfigured] = useState(false)
   const [followUpError, setFollowUpError] = useState('')
 
   useEffect(() => {
@@ -30,14 +45,31 @@ export default function App() {
   useEffect(() => {
     if (page !== 'followups') return
     let active = true
-    fetch('/api/followups')
-      .then((response) => {
-        if (!response.ok) throw new Error('Could not load follow-ups.')
-        return response.json() as Promise<{ followUps: FollowUp[] }>
-      })
-      .then((payload) => { if (active) setFollowUps(payload.followUps ?? []) })
-      .catch(() => { if (active) setFollowUpError('Could not reach the backend. Start the API and refresh this page.') })
-    return () => { active = false }
+    const loadFollowUps = () => {
+      Promise.all([fetch('/api/followups'), fetch('/api/whatsapp/updates')])
+        .then(async ([followUpResponse, whatsappResponse]) => {
+          if (!followUpResponse.ok || !whatsappResponse.ok) throw new Error('Could not load follow-ups.')
+          return Promise.all([
+            followUpResponse.json() as Promise<{ followUps: FollowUp[] }>,
+            whatsappResponse.json() as Promise<WhatsAppUpdatesPayload>,
+          ])
+        })
+        .then(([followUpPayload, whatsappPayload]) => {
+          if (!active) return
+          setFollowUps(followUpPayload.followUps ?? [])
+          setWhatsappUpdates(whatsappPayload.updates ?? [])
+          setWhatsappSummary(whatsappPayload.summary)
+          setWhatsappConfigured(whatsappPayload.webhookConfigured && whatsappPayload.sendingConfigured)
+          setFollowUpError('')
+        })
+        .catch(() => { if (active) setFollowUpError('Could not reach the backend. Start the API and refresh this page.') })
+    }
+    loadFollowUps()
+    const refreshTimer = window.setInterval(loadFollowUps, 5000)
+    return () => {
+      active = false
+      window.clearInterval(refreshTimer)
+    }
   }, [page])
 
   const goBack = () => {
@@ -77,24 +109,65 @@ export default function App() {
   if (page === 'followups') {
     return (
       <AppShell user={user!} active="followups" onHome={goBack} onVisit={() => setPage('visit')} onFollowups={() => setPage('followups')} onSignOut={signOut}>
-        <section className="mx-auto max-w-5xl px-5 py-10 lg:px-10">
+        <section className="mx-auto max-w-6xl px-5 py-10 lg:px-10">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-moss">Visit queue</p>
           <h1 className="mt-2 font-display text-5xl leading-none text-forest">Follow-up board</h1>
-          <p className="mt-2 text-sm text-ink/60">Saved visit follow-ups, ordered by the next visit date.</p>
-          {followUpError && <p role="alert" className="mt-6 rounded-xl bg-danger-soft p-4 text-sm text-danger">{followUpError}</p>}
-          {!followUpError && followUps.length === 0 && <p className="mt-8 rounded-card border border-forest/10 bg-paper p-6 text-sm text-ink/60">No saved follow-ups yet. Confirm a visit record to add one.</p>}
-          <ul className="mt-6 grid gap-3">
-            {followUps.map((item, i) => (
-              <li key={`${item.recordId}-${i}`} className={`border-l-4 bg-paper p-5 shadow-sm ${item.danger ? 'border-danger' : 'border-moss'}`}>
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div><p className="font-bold">{item.beneficiaryName || 'Beneficiary'}</p><p className="mt-1 text-xs uppercase tracking-wide text-ink/50">{item.visitType} · {item.recordId}</p></div>
-                  {item.nextVisit && <time className="rounded-full bg-cream px-3 py-1 text-xs font-semibold">{item.nextVisit}</time>}
-                </div>
-                <p className="mt-4 text-sm text-ink/75">{item.line}</p>
-                {item.danger && <p className="mt-2 text-xs font-bold uppercase tracking-wide text-danger">Danger flag open · confirm PHC referral</p>}
-              </li>
-            ))}
-          </ul>
+          <p className="mt-2 text-sm text-ink/60">Saved visit follow-ups with WhatsApp replies synchronized automatically every five seconds.</p>
+          <div className="mt-7 grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+            <div>
+              {followUpError && <p role="alert" className="rounded-xl bg-danger-soft p-4 text-sm text-danger">{followUpError}</p>}
+              {!followUpError && followUps.length === 0 && <p className="rounded-card border border-forest/10 bg-paper p-6 text-sm text-ink/60">No saved follow-ups yet. Confirm a visit record to add one.</p>}
+              <ul className="grid gap-3">
+                {followUps.map((item, i) => (
+                  <li key={`${item.recordId}-${i}`} className={`border-l-4 bg-paper p-5 shadow-sm ${item.danger ? 'border-danger' : 'border-moss'}`}>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div><p className="font-bold">{item.beneficiaryName || 'Beneficiary'}</p><p className="mt-1 text-xs uppercase tracking-wide text-ink/50">{item.visitType} · {item.recordId}</p></div>
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        <span className={`rounded-full px-3 py-1 text-xs font-bold ${WHATSAPP_STATUS[item.whatsappStatus].className}`}>
+                          WhatsApp · {WHATSAPP_STATUS[item.whatsappStatus].label}
+                        </span>
+                        {item.nextVisit && <time className="rounded-full bg-cream px-3 py-1 text-xs font-semibold">{item.nextVisit}</time>}
+                      </div>
+                    </div>
+                    <p className="mt-4 text-sm text-ink/75">{item.line}</p>
+                    {item.whatsappLastReply && <p className="mt-2 text-xs text-ink/50">Latest reply: {item.whatsappLastReply}</p>}
+                    {item.danger && <p className="mt-2 text-xs font-bold uppercase tracking-wide text-danger">Danger flag open · confirm PHC referral</p>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <aside className="h-fit border border-forest/10 bg-paper p-5 shadow-sm lg:sticky lg:top-6">
+              <div className="flex items-start justify-between gap-3">
+                <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-moss">WhatsApp updates</p><h2 className="mt-1 font-display text-2xl text-forest">Reply activity</h2></div>
+                <span className={`mt-1 h-2.5 w-2.5 rounded-full ${whatsappConfigured ? 'bg-[#25d366]' : 'bg-turmeric'}`} title={whatsappConfigured ? 'Connected' : 'Credentials required'} />
+              </div>
+              <div className="mt-5 grid grid-cols-2 gap-2">
+                {(Object.keys(WHATSAPP_STATUS) as Array<keyof typeof WHATSAPP_STATUS>).map((status) => (
+                  <div key={status} className="rounded-xl bg-cream p-3">
+                    <p className="text-xl font-extrabold text-forest">{whatsappSummary[status]}</p>
+                    <p className="mt-1 text-[10px] font-bold leading-tight text-ink/50">{WHATSAPP_STATUS[status].label}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-5 border-t border-forest/10 pt-4">
+                {whatsappUpdates.length === 0 ? (
+                  <p className="text-xs leading-relaxed text-ink/50">New beneficiary replies will appear here automatically.</p>
+                ) : (
+                  <ul className="space-y-4">
+                    {whatsappUpdates.slice(0, 8).map((update) => (
+                      <li key={`${update.recordId}-${update.createdAt}`}>
+                        <p className="text-sm font-bold text-forest">{update.beneficiaryName || update.recordId}</p>
+                        <p className="mt-1 text-xs text-ink/60">{WHATSAPP_STATUS[update.status].label}{update.reply ? ` · “${update.reply}”` : ''}</p>
+                        <time className="mt-1 block text-[10px] text-ink/40">{new Date(update.createdAt).toLocaleString()}</time>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              {!whatsappConfigured && <p className="mt-5 rounded-xl bg-turmeric/15 p-3 text-xs font-semibold leading-relaxed text-[#80520c]">Add Meta credentials to receive live WhatsApp replies.</p>}
+            </aside>
+          </div>
         </section>
       </AppShell>
     )
@@ -106,19 +179,7 @@ export default function App() {
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
           <div><p className="text-xs font-bold uppercase tracking-[0.18em] text-moss">Active field visit</p><p className="text-sm text-ink/50">Speak naturally in Hindi, Hinglish, or English</p></div>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={voice.toggleMute}
-              aria-pressed={voice.muted}
-              aria-label={voice.muted ? 'Unmute voice assistant' : 'Mute voice assistant'}
-              title={voice.muted ? 'Unmute voice assistant' : 'Mute voice assistant'}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                voice.muted ? 'bg-danger-soft text-danger' : 'bg-cream text-forest hover:bg-mint/60'
-              }`}
-            >
-              {voice.muted ? <MutedIcon className="h-4 w-4" /> : <SpeakerIcon className="h-4 w-4" />}
-              <span className="hidden sm:inline">{voice.muted ? 'Unmute' : 'Mute'}</span>
-            </button>
+            <span className="rounded-full bg-cream px-3 py-1 text-xs font-semibold text-forest">Text-only assistant</span>
             <span className="rounded-full bg-cream px-3 py-1 text-xs font-semibold text-forest">{voice.status}</span>
           </div>
         </div></div>
@@ -131,7 +192,7 @@ export default function App() {
             <p className="mt-2 text-sm leading-relaxed text-ink/60">The assistant discloses that it is AI, then listens. Check the extracted fields and correct anything before saving.</p>
             <div className="mt-5 flex flex-wrap gap-2 text-[11px] font-semibold text-forest/70">
               <span className="rounded-full bg-cream px-3 py-1.5">STT: {voice.meta?.stt ?? 'connecting'}</span>
-              <span className="rounded-full bg-cream px-3 py-1.5">TTS: {voice.meta?.tts ?? 'connecting'}</span>
+              <span className="rounded-full bg-cream px-3 py-1.5">Output: {voice.meta?.tts ?? 'text-only'}</span>
               <span className="rounded-full bg-cream px-3 py-1.5">Extraction: {voice.meta?.llm ?? 'rules'}</span>
             </div>
           </div>

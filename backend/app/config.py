@@ -46,6 +46,10 @@ class Settings:
     llm_base_url: str = field(default_factory=lambda: _env("LLM_BASE_URL"))
     llm_api_key: str = field(default_factory=lambda: _env("LLM_API_KEY"))
     llm_model: str = field(default_factory=lambda: _env("LLM_MODEL"))
+    whatsapp_verify_token: str = field(default_factory=lambda: _env("WHATSAPP_VERIFY_TOKEN"))
+    whatsapp_app_secret: str = field(default_factory=lambda: _env("WHATSAPP_APP_SECRET"))
+    whatsapp_access_token: str = field(default_factory=lambda: _env("WHATSAPP_ACCESS_TOKEN"))
+    whatsapp_phone_number_id: str = field(default_factory=lambda: _env("WHATSAPP_PHONE_NUMBER_ID"))
     allowed_origins: list[str] = field(
         default_factory=lambda: [
             o.strip()
@@ -59,8 +63,8 @@ class Settings:
 
     @property
     def speech_ready(self) -> bool:
-        """True when both Gnani STT and TTS are configured."""
-        return bool(self.gnani_api_key and self.gnani_stt_ws_url and self.gnani_tts_ws_url)
+        """True when Gnani speech-to-text is configured."""
+        return bool(self.gnani_api_key and self.gnani_stt_ws_url)
 
     @property
     def llm_ready(self) -> bool:
@@ -73,6 +77,14 @@ class Settings:
     @property
     def use_llm(self) -> bool:
         return (not self.demo_mode) and self.llm_ready
+
+    @property
+    def whatsapp_webhook_ready(self) -> bool:
+        return bool(self.whatsapp_verify_token and self.whatsapp_app_secret)
+
+    @property
+    def whatsapp_sending_ready(self) -> bool:
+        return bool(self.whatsapp_access_token and self.whatsapp_phone_number_id)
 
 
 settings = Settings()

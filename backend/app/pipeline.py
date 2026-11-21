@@ -105,7 +105,7 @@ class VisitSession:
                 "sessionId": self.id,
                 "demo": settings.demo_mode or not settings.speech_ready,
                 "stt": "gnani-prisma" if settings.use_speech_api else "browser",
-                "tts": "gnani-timbre" if settings.use_speech_api else "browser",
+                "tts": "text-only",
                 "llm": settings.llm_model if settings.use_llm else "rules",
                 "language": settings.language,
                 "source": danger_signs.SOURCE,

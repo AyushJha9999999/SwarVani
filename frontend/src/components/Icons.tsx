@@ -122,6 +122,15 @@ export function PhoneIcon({ className = base }: IconProps) {
   )
 }
 
+export function WhatsAppIcon({ className = base }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className={className}>
+      <path d="M20 11.6a8 8 0 0 1-11.8 7L4 20l1.4-4A8 8 0 1 1 20 11.6Z" strokeLinejoin="round" />
+      <path d="M9 8.2c.4 2.7 2 4.3 4.7 4.9l1.1-1.1 2 .9c-.2 1.5-1.1 2.3-2.6 2.3-4.2 0-7.4-3.3-7.4-7.5 0-1.4.8-2.3 2.2-2.5l1 2-1 1Z" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 export function HomeIcon({ className = base }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>

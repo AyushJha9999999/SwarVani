@@ -85,4 +85,24 @@ export type FollowUp = {
   nextVisit: string | null
   line: string
   danger: boolean
+  whatsappStatus: 'confirmed' | 'reschedule_requested' | 'no_response' | 'asha_callback_requested'
+  whatsappLastReply: string | null
+  whatsappUpdatedAt: string | null
+}
+
+export type WhatsAppStatus = FollowUp['whatsappStatus']
+
+export type WhatsAppUpdate = {
+  recordId: string
+  beneficiaryName: string | null
+  status: WhatsAppStatus
+  reply: string | null
+  createdAt: string
+}
+
+export type WhatsAppUpdatesPayload = {
+  updates: WhatsAppUpdate[]
+  summary: Record<WhatsAppStatus, number>
+  webhookConfigured: boolean
+  sendingConfigured: boolean
 }

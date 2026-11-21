@@ -8,17 +8,20 @@ from __future__ import annotations
 
 import logging
 import asyncio
+import hmac
 import json
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import PlainTextResponse
 
 from . import db
 from . import danger_signs
 from .config import settings
-from .gnani import open_stt, parse_stt_message, synthesize
+from .gnani import open_stt, parse_stt_message
 from .pipeline import VisitSession
+from .whatsapp import apply_webhook, verify_signature
 
 log = logging.getLogger("swarvani")
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
@@ -27,7 +30,7 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(messag
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     if not settings.demo_mode and not settings.speech_ready:
-        raise RuntimeError("Live mode requires GNANI_API_KEY and the configured Gnani Prisma/Timbre WebSocket endpoints")
+        raise RuntimeError("Live mode requires GNANI_API_KEY and the configured Gnani Prisma WebSocket endpoint")
     if not settings.demo_mode and not db.encryption_enabled():
         raise RuntimeError("Live mode requires a valid SV_DB_KEY so visit records are encrypted at rest")
     db.init_db()
@@ -59,7 +62,13 @@ async def health() -> dict:
         "demoMode": settings.demo_mode,
         "speech": "gnani" if settings.use_speech_api else "browser",
         "llm": settings.llm_model if settings.use_llm else "rules",
-        "speechModels": {"stt": "Prisma v3.0", "tts": "Timbre v3.0"} if settings.use_speech_api else None,
+        "speechModels": {"stt": "Prisma v3.0", "tts": None} if settings.use_speech_api else None,
+        "assistantOutput": "text-only",
+        "whatsapp": {
+            "dashboardSync": True,
+            "webhookConfigured": settings.whatsapp_webhook_ready,
+            "sendingConfigured": settings.whatsapp_sending_ready,
+        },
         "encryption": db.encryption_enabled(),
         "stats": db.stats(),
     }
@@ -73,6 +82,48 @@ async def records(limit: int = 50) -> dict:
 @app.get("/api/followups")
 async def followups() -> dict:
     return {"followUps": db.follow_ups()}
+
+
+@app.get("/api/whatsapp/webhook", response_class=PlainTextResponse)
+async def verify_whatsapp_webhook(
+    mode: str = Query("", alias="hub.mode"),
+    token: str = Query("", alias="hub.verify_token"),
+    challenge: str = Query("", alias="hub.challenge"),
+) -> str:
+    """Complete Meta's webhook verification handshake."""
+    if not settings.whatsapp_verify_token:
+        raise HTTPException(status_code=503, detail="WhatsApp webhook is not configured")
+    if mode != "subscribe" or not hmac.compare_digest(token, settings.whatsapp_verify_token):
+        raise HTTPException(status_code=403, detail="Webhook verification failed")
+    return challenge
+
+
+@app.post("/api/whatsapp/webhook")
+async def receive_whatsapp_webhook(request: Request) -> dict:
+    """Verify Meta's signature, then synchronize quick replies to the dashboard."""
+    if not settings.whatsapp_app_secret:
+        raise HTTPException(status_code=503, detail="WhatsApp webhook is not configured")
+    body = await request.body()
+    if not verify_signature(body, request.headers.get("X-Hub-Signature-256"), settings.whatsapp_app_secret):
+        raise HTTPException(status_code=401, detail="Invalid webhook signature")
+    try:
+        payload = json.loads(body)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload") from exc
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=400, detail="Webhook payload must be an object")
+    return {"received": True, "updates": apply_webhook(payload)}
+
+
+@app.get("/api/whatsapp/updates")
+async def whatsapp_updates(limit: int = 25) -> dict:
+    """Latest verified beneficiary replies plus current dashboard totals."""
+    return {
+        "updates": db.whatsapp_updates(limit),
+        "summary": db.whatsapp_status_summary(),
+        "webhookConfigured": settings.whatsapp_webhook_ready,
+        "sendingConfigured": settings.whatsapp_sending_ready,
+    }
 
 
 @app.get("/api/danger-signs")
@@ -103,23 +154,11 @@ async def voice_session(websocket: WebSocket) -> None:
     reader = None
 
     async def send_event(event: dict) -> None:
-        if event.get("speak") and settings.use_speech_api and event.get("type") != "danger":
-            try:
-                # Speech output is optional: a Timbre outage must never block
-                # danger alerts, extracted fields, or saving the visit. The
-                # browser falls back to its built-in speech synthesis when the
-                # audio field is absent or null.
-                audio = await asyncio.wait_for(
-                    synthesize(event.get("text", "")),
-                    timeout=8,
-                )
-            except Exception:
-                audio = None
-                log.warning("Gnani Timbre unavailable; sending text response with browser speech fallback")
-            if audio:
-                event["audio"] = audio
-            else:
-                event["audio"] = None
+        # The assistant is deliberately text-only. Keep `speak` false at the
+        # protocol boundary so no client can accidentally play server or
+        # browser-generated speech, while microphone STT remains enabled.
+        event["speak"] = False
+        event.pop("audio", None)
         async with send_lock:
             await websocket.send_json(event)
 
