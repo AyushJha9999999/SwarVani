@@ -131,6 +131,11 @@ export default function Landing({ user, onStart, onRecords, onSignIn, onSignOut 
             loop
             playsInline
             preload="metadata"
+            onEnded={(event) => {
+              const video = event.currentTarget
+              video.currentTime = 0
+              void video.play().catch(() => undefined)
+            }}
             aria-hidden="true"
           >
             <source src="/swarvani-field.mp4" type="video/mp4" />
@@ -140,7 +145,7 @@ export default function Landing({ user, onStart, onRecords, onSignIn, onSignOut 
           <div className="field-lines pointer-events-none absolute inset-0 opacity-10" />
           <div className="mx-auto grid w-full max-w-6xl gap-14 px-5 pb-20 pt-14 lg:grid-cols-[1.06fr_0.94fr] lg:items-center lg:pb-24 lg:pt-20">
             <div className="relative">
-              <span className="inline-flex items-center gap-2 border border-cream/25 bg-forest-deep/45 px-3.5 py-1.5 text-xs font-semibold text-mint backdrop-blur-sm">
+              <span className="hero-glow inline-flex items-center gap-2 border border-[#f2c96d]/45 bg-black/45 px-3.5 py-1.5 text-xs font-semibold text-[#ffe08a] backdrop-blur-sm">
                 <span className="h-1.5 w-1.5 rounded-full bg-turmeric" />
                 Healthcare · Gnani Voice Hackathon
               </span>
@@ -149,14 +154,14 @@ export default function Landing({ user, onStart, onRecords, onSignIn, onSignOut 
                 Speak the visit.
                 <br />
                 <span className="relative inline-block">
-                  <em className="relative z-10 font-normal text-mint">Confirm the record.</em>
-                  <span className="absolute inset-x-0 bottom-1 z-0 h-3 -rotate-1 bg-turmeric/40" />
+                <em className="hero-glow relative z-10 font-normal text-[#ffe08a]">Confirm the record.</em>
+                <span className="absolute inset-x-0 bottom-1 z-0 h-3 -rotate-1 bg-[#e7b665]/40" />
                 </span>
                 <br />
                 Know what to do next.
               </h1>
 
-              <p className="mt-7 max-w-xl text-[15px] leading-relaxed text-cream/75 sm:text-base">
+              <p className="hero-copy-glow mt-7 max-w-xl text-[15px] leading-relaxed text-white sm:text-base">
                 ASHA workers log antenatal, newborn and immunisation visits by typing on small phone screens or
                 writing in paper registers. SwarVani takes her spoken note — Hinglish, health terms and all —
                 turns it into a structured record, reads it back for confirmation, and raises a referral alert the
@@ -181,7 +186,7 @@ export default function Landing({ user, onStart, onRecords, onSignIn, onSignOut 
                 </a>
               </div>
 
-              <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium text-cream/55">
+              <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium text-white/90">
                 <span className="inline-flex items-center gap-1.5">
                   <PhoneIcon className="h-4 w-4" /> Runs in a phone browser
                 </span>
@@ -551,7 +556,7 @@ function FieldMoment() {
         <blockquote className="mt-5 font-display text-3xl leading-[1.02] text-cream sm:text-4xl">
           “Sunita Devi ka checkup kiya…”
         </blockquote>
-        <p className="mt-4 font-hindi text-sm leading-relaxed text-mint/85">आवाज़ से रिकॉर्ड तक — घर पर, उसी पल।</p>
+        <p className="hero-glow mt-4 font-hindi text-sm leading-relaxed text-[#ffe08a]">आवाज़ से रिकॉर्ड तक — घर पर, उसी पल।</p>
         <div className="mt-6 grid grid-cols-3 gap-2 border-t border-cream/15 pt-4 text-[10px] font-semibold uppercase tracking-wide text-cream/55">
           <span><strong className="block text-lg text-cream">01</strong> speak</span>
           <span><strong className="block text-lg text-cream">02</strong> confirm</span>
