@@ -123,11 +123,24 @@ export default function Landing({ user, onStart, onRecords, onSignIn, onSignOut 
 
       <main id="top">
         {/* ---------------------------------------------------------- hero */}
-        <section className="relative overflow-hidden border-b border-forest/10 bg-forest-deep text-cream">
-          <div className="field-lines absolute inset-0 opacity-15" />
+        <section className="hero-scene relative min-h-[45rem] overflow-hidden border-b border-forest/10 bg-forest-deep text-cream">
+          <video
+            className="hero-video absolute inset-0 h-full w-full object-cover"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            aria-hidden="true"
+          >
+            <source src="/swarvani-field.mp4" type="video/mp4" />
+          </video>
+          <div className="hero-video-wash absolute inset-0" />
+          <div className="hero-video-vignette absolute inset-0" />
+          <div className="field-lines pointer-events-none absolute inset-0 opacity-10" />
           <div className="mx-auto grid w-full max-w-6xl gap-14 px-5 pb-20 pt-14 lg:grid-cols-[1.06fr_0.94fr] lg:items-center lg:pb-24 lg:pt-20">
             <div className="relative">
-              <span className="inline-flex items-center gap-2 border border-cream/20 bg-cream/5 px-3.5 py-1.5 text-xs font-semibold text-mint">
+              <span className="inline-flex items-center gap-2 border border-cream/25 bg-forest-deep/45 px-3.5 py-1.5 text-xs font-semibold text-mint backdrop-blur-sm">
                 <span className="h-1.5 w-1.5 rounded-full bg-turmeric" />
                 Healthcare · Gnani Voice Hackathon
               </span>
@@ -143,7 +156,7 @@ export default function Landing({ user, onStart, onRecords, onSignIn, onSignOut 
                 Know what to do next.
               </h1>
 
-              <p className="mt-7 max-w-xl text-[15px] leading-relaxed text-cream/68 sm:text-base">
+              <p className="mt-7 max-w-xl text-[15px] leading-relaxed text-cream/75 sm:text-base">
                 ASHA workers log antenatal, newborn and immunisation visits by typing on small phone screens or
                 writing in paper registers. SwarVani takes her spoken note — Hinglish, health terms and all —
                 turns it into a structured record, reads it back for confirmation, and raises a referral alert the
@@ -181,7 +194,7 @@ export default function Landing({ user, onStart, onRecords, onSignIn, onSignOut 
               </div>
             </div>
 
-            <PhonePreview />
+            <FieldMoment />
           </div>
         </section>
 
@@ -522,6 +535,31 @@ function PhonePreview() {
 
       <div className="absolute -bottom-5 -left-3 hidden rounded-xl border border-forest/15 bg-paper px-3 py-2 text-[10px] font-semibold text-forest shadow-sm sm:block">
         confirm before save
+      </div>
+    </div>
+  )
+}
+
+function FieldMoment() {
+  return (
+    <div className="relative mx-auto w-full max-w-[25rem] lg:mt-14">
+      <div className="border border-cream/30 bg-forest-deep/55 p-5 shadow-2xl backdrop-blur-md sm:p-6">
+        <div className="flex items-center justify-between border-b border-cream/15 pb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-cream/65">
+          <span>Field note · 10:42 am</span>
+          <span className="flex items-center gap-1.5 text-[#f4c66b]"><span className="h-1.5 w-1.5 rounded-full bg-[#f4c66b]" /> live</span>
+        </div>
+        <blockquote className="mt-5 font-display text-3xl leading-[1.02] text-cream sm:text-4xl">
+          “Sunita Devi ka checkup kiya…”
+        </blockquote>
+        <p className="mt-4 font-hindi text-sm leading-relaxed text-mint/85">आवाज़ से रिकॉर्ड तक — घर पर, उसी पल।</p>
+        <div className="mt-6 grid grid-cols-3 gap-2 border-t border-cream/15 pt-4 text-[10px] font-semibold uppercase tracking-wide text-cream/55">
+          <span><strong className="block text-lg text-cream">01</strong> speak</span>
+          <span><strong className="block text-lg text-cream">02</strong> confirm</span>
+          <span><strong className="block text-lg text-cream">03</strong> follow up</span>
+        </div>
+      </div>
+      <div className="absolute -bottom-5 -left-4 border border-[#f4c66b]/40 bg-[#f4c66b] px-3 py-2 text-[10px] font-extrabold uppercase tracking-[0.15em] text-forest shadow-lg">
+        Voice-first care
       </div>
     </div>
   )
